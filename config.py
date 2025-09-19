@@ -1,0 +1,8 @@
+host="localhost"
+user="panelncp_mohammad"
+password="Tazari_490490"
+database="panelncp_aria"
+# host="localhost" 
+# user="mohamma8_root"
+# password="Tazari_490490"
+# database="mohamma8_worldwar3"
