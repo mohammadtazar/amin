@@ -472,49 +472,50 @@ def promotion(chat_id, promotion_id):
 
                 if int(promotion_id) == 1:
                     resources = [
-                        (city_id, 3, 14000), (city_id, 2, 60), (city_id, 1, 60),
-                        (city_id, 4, 2500), (city_id, 5, 2500), (city_id, 6, 2500),
-                        (city_id, 10, 250),(city_id, 7, 250),(city_id, 8, 250),(city_id, 9, 50),
-                        (city_id, 11, 200), (city_id, 12, 200),
-                        (city_id, 13, 200), (city_id, 14, 200), (city_id, 22, 200),
-                        (city_id, 15, 10), (city_id, 16, 10),
-                        (city_id, 17, 10),(city_id, 18, 5),(city_id, 19, 5),(city_id, 20, 5),
-                        (city_id, 21, 1)
+                        (city_id, 3, 30000), (city_id, 2, 60),
+                        (city_id, 4, 3000), (city_id, 5, 3000), (city_id, 6, 2000), (city_id, 7, 800),(city_id, 8, 500),
+                        (city_id, 11, 80), (city_id, 12, 80),
+                        (city_id, 13, 80), (city_id, 14, 80), (city_id, 22, 80),
+                        (city_id, 15, 10), (city_id, 16, 10), (city_id, 17, 6),
+                        (city_id, 18, 6),(city_id, 20, 2),
+                        (city_id, 29, 200), (city_id, 30, 200), (city_id, 31, 200), (city_id, 32, 200),
+                        (city_id, 33, 50), (city_id, 35, 500),(city_id, 34, 20),
                     ]
                     buildings = [
-                        (city_id, 1, 4), (city_id, 2, 4), (city_id, 3, 4),(city_id, 4, 4),
-                        (city_id, 5, 3),(city_id, 6, 3),(city_id, 7, 3), (city_id, 8, 3),
-                        (city_id, 9, 2), (city_id, 10, 2), (city_id, 11, 2), (city_id, 12, 2), (city_id, 15, 2)
+                        (city_id, 1, 5), (city_id, 2, 3), (city_id, 3, 3), (city_id, 4, 3), (city_id, 7, 3),
+                        (city_id, 8, 2), (city_id, 9,2), (city_id, 10, 2), (city_id, 11,2), (city_id, 12, 2),
+                        (city_id, 13, 1), (city_id, 14, 2), (city_id, 15, 3), (city_id, 16, 3), (city_id, 17, 2)
+
                     ]
-                elif int(promotion_id) == 3:
-                    resources = [
-                        (city_id, 1, 50), (city_id, 2, 50), (city_id, 3, 7000), (city_id, 4, 1000),
-                        (city_id, 5, 1000), (city_id, 6, 1000), (city_id, 7, 150), (city_id, 8, 150), (city_id, 9, 50),
-                        (city_id, 10, 150), (city_id, 11, 100), (city_id, 12, 100), (city_id, 13, 100),
-                        (city_id, 14, 100), (city_id, 22, 100),
-                        (city_id, 15, 4), (city_id, 16, 2), (city_id, 17, 4), (city_id, 18, 4),
-                        (city_id, 20, 1)
-                    ]
-                    buildings = [
-                        (city_id, 1, 2), (city_id, 2, 1), (city_id, 3, 1), (city_id, 4, 1), (city_id, 5, 1),
-                        (city_id, 6, 1), (city_id, 7, 1), (city_id, 8, 1), (city_id, 9, 1), (city_id, 10, 1),
-                        (city_id, 11, 1), (city_id, 12, 1), (city_id, 15, 1)
-                    ]
-                elif int(promotion_id) == 2:
-                    resources = [
-                        (city_id, 1, 60), (city_id, 2, 60), (city_id, 3, 14000), (city_id, 4, 2000),
-                        (city_id, 5, 2000), (city_id, 6, 2000), (city_id, 7, 300), (city_id, 8, 300), (city_id, 9, 100),
-                        (city_id, 10, 300), (city_id, 11, 200), (city_id, 12, 200), (city_id, 13, 200),
-                        (city_id, 14, 150),(city_id, 22, 150),
-                        (city_id, 15, 8), (city_id, 16, 8), (city_id, 17, 8), (city_id, 18, 6),
-                        (city_id, 19, 1),
-                        (city_id, 20, 3)
-                    ]
-                    buildings = [
-                        (city_id, 1, 3), (city_id, 2, 2), (city_id, 3, 2), (city_id, 4, 2), (city_id, 5, 2),
-                        (city_id, 6, 2), (city_id, 7, 2), (city_id, 8, 2), (city_id, 9, 2), (city_id, 10, 2),
-                        (city_id, 11, 2), (city_id, 12, 1), (city_id, 15, 1)
-                    ]
+                # elif int(promotion_id) == 3:
+                #     resources = [
+                #         (city_id, 1, 50), (city_id, 2, 50), (city_id, 3, 7000), (city_id, 4, 1000),
+                #         (city_id, 5, 1000), (city_id, 6, 1000), (city_id, 7, 150), (city_id, 8, 150), (city_id, 9, 50),
+                #         (city_id, 10, 150), (city_id, 11, 100), (city_id, 12, 100), (city_id, 13, 100),
+                #         (city_id, 14, 100), (city_id, 22, 100),
+                #         (city_id, 15, 4), (city_id, 16, 2), (city_id, 17, 4), (city_id, 18, 4),
+                #         (city_id, 20, 1)
+                #     ]
+                #     buildings = [
+                #         (city_id, 1, 2), (city_id, 2, 1), (city_id, 3, 1), (city_id, 4, 1), (city_id, 5, 1),
+                #         (city_id, 6, 1), (city_id, 7, 1), (city_id, 8, 1), (city_id, 9, 1), (city_id, 10, 1),
+                #         (city_id, 11, 1), (city_id, 12, 1), (city_id, 15, 1)
+                #     ]
+                # elif int(promotion_id) == 2:
+                #     resources = [
+                #         (city_id, 1, 60), (city_id, 2, 60), (city_id, 3, 14000), (city_id, 4, 2000),
+                #         (city_id, 5, 2000), (city_id, 6, 2000), (city_id, 7, 300), (city_id, 8, 300), (city_id, 9, 100),
+                #         (city_id, 10, 300), (city_id, 11, 200), (city_id, 12, 200), (city_id, 13, 200),
+                #         (city_id, 14, 150),(city_id, 22, 150),
+                #         (city_id, 15, 8), (city_id, 16, 8), (city_id, 17, 8), (city_id, 18, 6),
+                #         (city_id, 19, 1),
+                #         (city_id, 20, 3)
+                #     ]
+                #     buildings = [
+                #         (city_id, 1, 3), (city_id, 2, 2), (city_id, 3, 2), (city_id, 4, 2), (city_id, 5, 2),
+                #         (city_id, 6, 2), (city_id, 7, 2), (city_id, 8, 2), (city_id, 9, 2), (city_id, 10, 2),
+                #         (city_id, 11, 2), (city_id, 12, 1), (city_id, 15, 1)
+                #     ]
                 elif int(promotion_id) == 4:
                     resources = [
                         (city_id, 3, 10000), (city_id, 2, 50),
