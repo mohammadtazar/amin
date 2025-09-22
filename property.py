@@ -2,7 +2,7 @@ import mysql.connector
 import config
 
 image_property = {
-    1: "🔮",
+    36: "🔮",
     2: "💪",
     3: "💰⊰",
     4: "🪵⊰",
@@ -28,8 +28,15 @@ image_property = {
     22: "『🪓』",
     24: "『🛳』",
     25: "『🛳』",
-    26: "『🛳』",
-
+    26: "『🚢』",
+    28: "『🥷🏽』",
+    29: "『⚔️』",
+    30: "『🏹』",
+    31: "『🔱』",
+    32: "『🛡』",
+    33: "『🏇』",
+    34: "『🛢』",
+    35: "『🙍』",
 }
 image_production = {1: "🏦⊰",
     2: "🌳⊰",
@@ -42,10 +49,13 @@ image_production = {1: "🏦⊰",
     9: "『⚔️』",
     10: "『🏹』",
     11: "『🔱』",
-    12: "『🏇』",
+    12: "『🛡』",
     13: " ⚓️",
     14: "[🏭]",
-    15: "『🩸』"   }
+    15: "『🩸』",
+    16: "『🏠』",
+    17: "『🏇』"
+                    }
 def get_property(chat_id, name):
     try:
         with mysql.connector.connect(
@@ -107,7 +117,7 @@ def get_property(chat_id, name):
             if current_type != prop_type:
                 current_type = prop_type
                 property_text += "\n"
-            image = image_property.get(prop_id)
+            image = image_property.get(prop_id,"⭐")
             property_text += f'{image} {title} ⊱ {amount}\n'
 
         property_text += "\n🏗 **ساختمان‌ها:**\n"
