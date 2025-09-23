@@ -15,8 +15,8 @@ from making import (get_all_ship,get_config_ship,get_cost_ship,get_cost_tools,ge
                     ,get_cost_army,get_config_army)
 from upgrate import cost_food,cost_casualties,get_negative_supply,get_resource_efficiency,get_up_city
 admin_chat_id = '1889589121'
-admin_chat_second_id ='1225238543'
-admin_chat_tree_id = '7693247461'
+admin_chat_second_id ='6968676246'
+admin_chat_tree_id = '0'
 BOT_TOKEN = '7573605568:AAFAatB0133sDm5KkuK3Wxezxn6cipNdfGo'
 campaign_chat_id = '-1002832253797'
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -35,15 +35,15 @@ file_id_campaign = {
     106: "AgACAgQAAxkBAAM2aNGN6wr8WQn5OzFYz_rV_ya0vvsAAmHLMRtYGpBScOws-EbIu8MBAAMCAAN5AAM2BA",
 }
 file_id_naval_campaign = {
-    105: "AgACAgQAAxkBAAKnqWhmoUV-rrJB4cvL0C7Ar1QvBif6AAJbyjEb0SE4U3jxHxSFXr74AQADAgADeAADNgQ",
-    106: "AgACAgQAAxkBAAKnqWhmoUV-rrJB4cvL0C7Ar1QvBif6AAJbyjEb0SE4U3jxHxSFXr74AQADAgADeAADNgQ",
+    105: "AgACAgQAAxkBAAM7aNLWxo6Vc_xaBZgtPTSVOYkLiU8AAo3IMRuzD5lSnWG8LNW0qFEBAAMCAAN4AAM2BA",
+    106: "AgACAgQAAxkBAAM7aNLWxo6Vc_xaBZgtPTSVOYkLiU8AAo3IMRuzD5lSnWG8LNW0qFEBAAMCAAN4AAM2BA",
 
 }
-file_id_attack_naval_campaign = 'AgACAgQAAxkBAAJ3AWes8ksl1eBq3w66cV8VYenST2rfAAJdyDEbI-ppURhXJqKSKYG8AQADAgADeQADNgQ'
+file_id_attack_naval_campaign = 'AgACAgQAAxkBAAM8aNLW32SoYkNI-ZpwfRsjIVxramAAAo7IMRuzD5lSqXVXMpMBKRMBAAMCAAN4AAM2BA'
 file_id_siege = 'AgACAgQAAxkBAAM0aNGNKcSR4sF69uEJVm0EQJBeGrIAAlPLMRtYGpBS4SsxlugkQVkBAAMCAAN5AAM2BA'
 file_id_attack = 'AgACAgQAAxkBAAM1aNGNf4xOTt_JNfn2fnpAju-stkMAAlXLMRtYGpBSH7QAAbiP81DGAQADAgADeQADNgQ'
-group_chat_id = '@FFBT_Main'
-tweet_chat_id = '@FFBT_Tweet'
+group_chat_id = '@BloodyThrone_Main'
+tweet_chat_id = '@BloodyThrone_Tweet'
 admin_panel = '-4786037295'
 def send_admin(text, error, user_id):
     try:

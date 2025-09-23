@@ -482,7 +482,7 @@ def promotion(chat_id, promotion_id):
 
                 if int(promotion_id) == 1:
                     resources = [
-                        (city_id, 3, 30000), (city_id, 2, 60),
+                        (city_id, 3, 30000), (city_id, 2, 60),(city_id, 36, 43),
                         (city_id, 4, 3000), (city_id, 5, 3000), (city_id, 6, 2000), (city_id, 7, 800),(city_id, 8, 500),
                         (city_id, 11, 80), (city_id, 12, 80),
                         (city_id, 13, 80), (city_id, 14, 80), (city_id, 22, 80),
@@ -528,7 +528,7 @@ def promotion(chat_id, promotion_id):
                 #     ]
                 elif int(promotion_id) == 4:
                     resources = [
-                        (city_id, 3, 10000), (city_id, 2, 50),
+                        (city_id, 3, 10000), (city_id, 2, 50),(city_id, 36, 43),
                         (city_id, 4, 1000), (city_id, 5, 1000), (city_id, 6, 1000),(city_id, 7, 300),
                         (city_id, 11, 20), (city_id, 12, 20),
                         (city_id, 13, 20), (city_id, 14, 20), (city_id, 22, 20),
