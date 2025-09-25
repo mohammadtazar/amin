@@ -494,7 +494,7 @@ def promotion(chat_id, promotion_id):
                     buildings = [
                         (city_id, 1, 5), (city_id, 2, 3), (city_id, 3, 3), (city_id, 4, 3), (city_id, 7, 3),
                         (city_id, 8, 2), (city_id, 9,2), (city_id, 10, 2), (city_id, 11,2), (city_id, 12, 2),
-                        (city_id, 13, 1), (city_id, 14, 2), (city_id, 15, 3), (city_id, 16, 3), (city_id, 17, 2)
+                        (city_id, 13, 1), (city_id, 14, 2), (city_id, 15, 3), (city_id, 16, 3), (city_id, 17, 2), (city_id, 18, 1)
 
                     ]
                 # elif int(promotion_id) == 3:
@@ -540,7 +540,7 @@ def promotion(chat_id, promotion_id):
                     buildings = [
                         (city_id, 1, 1), (city_id, 2, 1), (city_id, 3, 1), (city_id, 4, 1), (city_id, 7, 1),
                         (city_id, 8, 1), (city_id, 9, 1), (city_id, 10, 1), (city_id, 11, 1), (city_id, 12, 1),
-                        (city_id, 13, 1), (city_id, 14, 1), (city_id, 15, 1), (city_id, 16, 1), (city_id, 17, 1)
+                        (city_id, 13, 1), (city_id, 14, 1), (city_id, 15, 1), (city_id, 16, 1), (city_id, 17, 1),(city_id, 18, 1)
 
                     ]
 

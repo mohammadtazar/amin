@@ -92,6 +92,8 @@ def get_cost(build_id,chat_id):
             return str(err), False
 
         try:
+            if build_id in (13,14,18):
+                return get_specil_build_cost(build_id,level)
             cost_build_query = f'''
                                  SELECT bc.InitialValue, bc.SecondValue ,r.Title
                                  FROM building_cost bc
@@ -116,10 +118,78 @@ def get_cost(build_id,chat_id):
         return property_text, True
     except Exception as e:
         return str(e), False
+def get_specil_build_cost(build_id, level):
+    # دیکشنری هزینه‌ها برای ساختمان‌های خاص
+    special_build_costs = {
+        13: {   # ساختمان id=13
+            1: {"چوب": 100, "سکه": 1500, "آهن": 0},
+            2: {"چوب": 100, "سکه": 2000, "آهن": 200},
+            3: {"چوب": 300, "سکه": 3000, "آهن": 400},
+        },
+        14: {   # ساختمان id=14
+            1: {"چوب": 100, "سکه": 500},
+            2: {"چوب": 500, "سکه": 700},
+            3: {"چوب": 700, "سکه": 1000},
+            4: {"چوب": 1000, "سکه": 1500},
+            5: {"چوب": 500, "سکه": 2000, "آهن": 500, "سنگ": 200},
+        },
+        18: {   # ساختمان id=23
+            1: {"رایگان": 0},
+            2: {"چوب": 2000, "سکه": 10000},
+            3: {"چوب": 2500, "سنگ": 2500, "سکه": 20000},
+            4: {"چوب": 3000, "سنگ": 2000, "آهن": 2000, "سکه": 28000},
+            5: {"چوب": 5000, "سنگ": 5000, "آهن": 5000, "سکه": 38000,"کیر دراگون": 1000}
+        }
+    }
 
-def get_confirm_cost(build_id,chat_id):
+    # اگر لول مورد نظر در دیکشنری وجود نداشت
+    if build_id not in special_build_costs or level not in special_build_costs[build_id]:
+        return "برای این سطح هزینه تعریف نشده است.", False
+
+    costs = special_build_costs[build_id][level]
+
+    # متن خروجی برای نمایش به کاربر
+    property_text = "\nهزینه ارتقا "
+    for res, val in costs.items():
+        property_text += f"\n {res} : {val}"
+
+    property_text += ('\n\n'
+                      'آیا از ارتقای خود اطمینان دارید؟')
+
+    return property_text, True
+
+
+def get_specil_build_cost_make(build_id, level):
+    # دیکشنری هزینه‌ها برای ساختمان‌های خاص
+    special_build_costs = {
+        13: {   # ساختمان id=13
+            1: {"4": 100, "3": 1500, "6": 0},
+            2: {"4": 100, "3": 2000, "6": 200},
+            3: {"4": 300, "3": 3000, "6": 400},
+        },
+        14: {   # ساختمان id=14
+            1: {"4": 100, "3": 500},
+            2: {"4": 500, "3": 700},
+            3: {"4": 700, "3": 1000},
+            4: {"4": 1000, "3": 1500},
+            5: {"4": 500, "3": 2000, "6": 500, "5": 200},
+        },
+        18: {   # ساختمان id=23
+            2: {"4": 2000, "3": 10000},
+            3: {"4": 2500, "5": 2500, "3": 20000},
+            4: {"4": 3000, "5": 2000, "6": 2000, "3": 28000},
+            5: {"4": 5000, "5": 5000, "6": 5000, "3": 38000,"37": 1000}
+        }
+    }
+
+    if build_id not in special_build_costs or level not in special_build_costs[build_id]:
+        return None  # یعنی هزینه تعریف نشده
+
+    return special_build_costs[build_id][level]
+
+
+def get_confirm_cost(build_id, chat_id):
     try:
-        # اتصال به دیتابیس
         mydb = mysql.connector.connect(
             host=config.host,
             user=config.user,
@@ -129,123 +199,100 @@ def get_confirm_cost(build_id,chat_id):
         cursor = mydb.cursor()
         mydb.start_transaction()
 
-        try:
-            build_title_query = '''
-                               SELECT Title
-                               FROM building 
-                               WHERE Id = %s
-                               '''
-            cursor.execute(build_title_query, (build_id,))
-            build_title = cursor.fetchone()
+        # دریافت عنوان ساختمان
+        cursor.execute("SELECT Title FROM building WHERE Id = %s", (build_id,))
+        build_title = cursor.fetchone()
 
-        except mysql.connector.Error as err:
-            return str(err), False
         # دریافت سطح ساختمان
+        cursor.execute('''
+            SELECT bc.id, bc.Level
+            FROM building_city bc
+            JOIN citytribe c ON c.id = bc.CityId
+            WHERE c.ChatId = %s AND bc.BuildingId = %s
+        ''', (chat_id, build_id))
+        build_level = cursor.fetchall()
 
-        try:
-            build_level_query = '''
-                                    SELECT bc.id, bc.Level
-                                    FROM building_city bc
-                                    JOIN citytribe c ON c.id = bc.CityId
-                                    WHERE c.ChatId = %s AND bc.BuildingId = %s
-                                    '''
-            cursor.execute(build_level_query, (chat_id, build_id))
-            build_level = cursor.fetchall()
-            if not build_level:  # اگر سطحی وجود نداشت
-                first = True
-                level = 1
-            else:
-                first = False
-                level = build_level[0][1] + 1
-                if build_level[0][1] >= 50:
-                    return 'شما حداکثر سطح موجود را بدست آوردید', True
-        except mysql.connector.Error as err:
-            return str(err), False
-
-        # دریافت هزینه‌های ساختمان
-        try:
-            cost_build_query = '''
-                                      SELECT bc.InitialValue, bc.SecondValue, r.Title, r.Id
-                                      FROM building_cost bc
-                                      JOIN property r ON r.Id = bc.PropertyId
-                                      WHERE bc.BuildingId = %s
-                                      '''
-            cursor.execute(cost_build_query, (build_id,))
-            cost_build = cursor.fetchall()
-        except mysql.connector.Error as err:
-            return str(err), False
+        if not build_level:
+            first = True
+            level = 1
+        else:
+            first = False
+            level = build_level[0][1] + 1
+            if build_level[0][1] >= 50:
+                return 'شما حداکثر سطح موجود را بدست آوردید', True
 
         # دریافت دارایی‌های شهر
-        try:
-            property_query = '''
-                                  SELECT pc.PropertyId, pc.Amount
-                                  FROM property_city pc
-                                  JOIN citytribe c ON c.id = pc.CityId
-                                  WHERE c.ChatId = %s
-                                  '''
-            cursor.execute(property_query, (chat_id,))
-            property = cursor.fetchall()
-        except mysql.connector.Error as err:
-            return str(err), False
+        cursor.execute('''
+            SELECT pc.PropertyId, pc.Amount
+            FROM property_city pc
+            JOIN citytribe c ON c.id = pc.CityId
+            WHERE c.ChatId = %s
+        ''', (chat_id,))
+        property_rows = cursor.fetchall()
+        property_dict = {item[0]: item[1] for item in property_rows}
 
-        property_dict = {item[0]: item[1] for item in property}
-
-        # بررسی دارایی‌ها
         updates = []
-        for item in cost_build:
-            initial_value, second_value, resource_title, resource_id = item
 
-            # بررسی موجودی منبع
-            available_amount = property_dict.get(resource_id, 0)
-            required_amount = initial_value + level * second_value
-            # اگر منابع کافی نبود
-            if available_amount < required_amount:
-                return (
-                    f' {resource_title} به اندازه کافی موجود نیست. هزینه ارتقا {required_amount}موجودی : {available_amount}.\n'), True
-            # آماده‌سازی برای به‌روزرسانی
-            updates.append((required_amount, chat_id, resource_id))
+        # اگر ساختمان خاص بود
+        if build_id in (13, 14, 18):
+            costs = get_specil_build_cost_make(build_id, level)
+            if not costs:
+                return "هزینه‌ای برای این سطح تعریف نشده است.", False
 
-        # به‌روزرسانی منابع در یک بار
+            for resource_id, required_amount in costs.items():
+                available_amount = property_dict.get(int(resource_id), 0)
+                if available_amount < required_amount:
+                    return f' {resource_id} به اندازه کافی موجود نیست. نیاز: {required_amount} موجودی: {available_amount}', True
+                updates.append((required_amount, chat_id, int(resource_id)))
+
+        else:  # سایر ساختمان‌ها طبق دیتابیس
+            cursor.execute('''
+                SELECT bc.InitialValue, bc.SecondValue, r.Id
+                FROM building_cost bc
+                JOIN property r ON r.Id = bc.PropertyId
+                WHERE bc.BuildingId = %s
+            ''', (build_id,))
+            cost_build = cursor.fetchall()
+
+            for initial_value, second_value, resource_id in cost_build:
+                available_amount = property_dict.get(resource_id, 0)
+                required_amount = initial_value + level * second_value
+                if available_amount < required_amount:
+                    return f' منبع {resource_id} کافی نیست. نیاز: {required_amount} موجودی: {available_amount}', True
+                updates.append((required_amount, chat_id, resource_id))
+
+        # به‌روزرسانی منابع
         update_query = '''
-                          UPDATE property_city 
-                          SET Amount = Amount - %s
-                          WHERE CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
-                          AND PropertyId = %s
-                        '''
+            UPDATE property_city 
+            SET Amount = Amount - %s
+            WHERE CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
+            AND PropertyId = %s
+        '''
         for required_amount, chat_id, resource_id in updates:
             cursor.execute(update_query, (required_amount, chat_id, resource_id))
+
+        # ثبت یا ارتقا ساختمان
         if first:
-            city_id_query = '''
-                              SELECT Id
-                              FROM citytribe
-                              WHERE ChatId = %s
-                              '''
-            cursor.execute(city_id_query, (chat_id,))
+            cursor.execute("SELECT Id FROM citytribe WHERE ChatId = %s", (chat_id,))
             city_id = cursor.fetchall()[0][0]
-
-            insert_data_query = '''
-              INSERT INTO building_city (BuildingId, CityId, Level)
-              VALUES (%s, %s, 1)
-              '''
-            cursor.execute(insert_data_query, (build_id, city_id))
-
+            cursor.execute("INSERT INTO building_city (BuildingId, CityId, Level) VALUES (%s, %s, 1)", (build_id, city_id))
         else:
-            update_build_query = '''
-                                  UPDATE building_city
-                                  SET Level = Level +1
-                                  WHERE BuildingId = %s AND CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
-                                  '''
-            cursor.execute(update_build_query, (build_id, chat_id))
-            # اعمال تغییرات
-        mydb.commit()
+            cursor.execute('''
+                UPDATE building_city
+                SET Level = Level +1
+                WHERE BuildingId = %s AND CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
+            ''', (build_id, chat_id))
 
+        mydb.commit()
         return f'ساختمان {build_title[0]} با موفقیت ارتقا یافت', True
+
     except Exception as e:
-        mydb.rollback()  # در صورت بروز خطا، تغییرات برگشت داده می‌شوند
+        mydb.rollback()
         return str(e), False
     finally:
         cursor.close()
         mydb.close()
+
 def get_all_building_costs_and_profits():
     try:
         # اتصال به دیتابیس
