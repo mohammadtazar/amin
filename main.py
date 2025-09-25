@@ -18,7 +18,7 @@ admin_chat_id = '1889589121'
 admin_chat_second_id ='6968676246'
 admin_chat_tree_id = '0'
 BOT_TOKEN = '7573605568:AAFAatB0133sDm5KkuK3Wxezxn6cipNdfGo'
-campaign_chat_id = '-1002832253797'
+campaign_chat_id = '-4786037295'
 bot = telebot.TeleBot(BOT_TOKEN)
 
 campaign_messages={} # مقدار ارتش انتخابی
@@ -364,8 +364,10 @@ def campaign_confirm_send(call):
 
         data_campaign = campaign_messages[call.message.chat.id]
         campaign = data_campaign['text']
-
-        bot.send_message(chat_id=campaign_chat_id, text=f'{property_text} \n \n لشکر ها \n \n {campaign}')
+        try:
+            bot.send_message(chat_id=campaign_chat_id, text=f'{property_text} \n \n لشکر ها \n \n {campaign}')
+        except Exception as e:
+            print(e)
         bot.send_photo(chat_id=group_chat_id, photo=image, caption=property_text)
         bot.send_message(chat_id=call.message.chat.id, text='لشکر کشی با موفقیت انجام شد')
         try:
@@ -427,8 +429,10 @@ def send_desired_campaign(message,campaign_type):
                  f"@{username}")
         data_campaign = campaign_messages[message.chat.id]
         campaign = data_campaign['text']
-
-        bot.send_message(chat_id=campaign_chat_id, text=f'{text} \n \n لشکر ها \n \n {campaign}')
+        try:
+            bot.send_message(chat_id=campaign_chat_id, text=f'{text} \n \n لشکر ها \n \n {campaign}')
+        except Exception as e:
+            print(e)
         bot.send_photo(chat_id=group_chat_id, photo=image, caption=text)
         bot.send_message(chat_id=message.chat.id, text='لشکر کشی با موفقیت انجام شد', reply_markup=empty_markup)
         send_welcome(message)
