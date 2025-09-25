@@ -1,15 +1,20 @@
 # گیم آریا base
+import traceback
+
 from telebot import types
 import telebot
 from threading import Thread
 import time
+
+from telebot.apihelper import ApiTelegramException
+
 #local
 from city import (get_all_city,get_city_by_parent_id,get_campaign_confirm,get_city_by_chat_id,get_city_by_id,
                   get_my_dragon,get_dragon_by_id)
 from property import (get_property,get_trade,get_product_detail,get_product,get_all_resource,resource_add,resource_costs
                     ,promotion,get_all_dragon,get_add_dragon,get_remove_property)
 from building import (get_all_building_costs_and_profits,get_cost,get_confirm_cost,get_economic,get_military,get_all_building,
-                      get_up_level,get_down_level)
+                      get_up_level,get_down_level,get_confirm_multiple_cost,get_multiple_cost,get_production)
 from data_sql import save_city,save_user,add_city_database
 from making import (get_all_ship,get_config_ship,get_cost_ship,get_cost_tools,get_all_tools,get_config_tools,get_all_army
                     ,get_cost_army,get_config_army)
@@ -20,7 +25,8 @@ admin_chat_tree_id = '0'
 BOT_TOKEN = '7573605568:AAFAatB0133sDm5KkuK3Wxezxn6cipNdfGo'
 campaign_chat_id = '-4786037295'
 bot = telebot.TeleBot(BOT_TOKEN)
-
+BOTSupport_TOKEN = '7139060556:AAGQYZEyh2t-udVgDHc8Ep0KUaajTT9poNQ' # ساپورت
+botSupport = telebot.TeleBot(BOTSupport_TOKEN)
 campaign_messages={} # مقدار ارتش انتخابی
 last_click_time = {}
 
@@ -45,17 +51,32 @@ file_id_attack = 'AgACAgQAAxkBAAM1aNGNf4xOTt_JNfn2fnpAju-stkMAAlXLMRtYGpBSH7QAAb
 group_chat_id = '@BloodyThrone_Main'
 tweet_chat_id = '@BloodyThrone_Tweet'
 admin_panel = '-4786037295'
-def send_admin(text, error, user_id):
-    try:
-        bot.send_message(chat_id=admin_chat_id, text=f'مکان خطا :'
-                                                     f'\n'
-                                                     f'{text}'
-                                                     f'\n'
-                                                     f'{error} '
-                                                     f'\n'
-                                                     f' @{user_id}', parse_mode='Markdown')
-    except Exception as e:
-        pass
+
+# def send_admin(text, error, user_id):
+#     try:
+#         bot.send_message(chat_id=admin_chat_id, text=f'مکان خطا :'
+#                                                      f'\n'
+#                                                      f'{text}'
+#                                                      f'\n'
+#                                                      f'{error} '
+#                                                      f'\n'
+#                                                      f' @{user_id}', parse_mode='Markdown')
+#     except Exception as e:
+#         pass
+def send_admin(tag, e, username,chat_id):
+    if isinstance(e, ApiTelegramException) and e.error_code == 429:
+        retry_after = int(e.result_json.get("parameters", {}).get("retry_after", 10))
+        time.sleep(retry_after + 1)  # کمی بیشتر برای اطمینان
+        text = f"عملیات مورد نظر در دیتابیس پردازش شد اما به دلیل اینکه محدودیت تلگرام برای پاسخ فعال شده است قادر به پاسخ نمی باشد. \n\n بعد از {retry_after} ثانیه تلاش کنید"
+        botSupport.send_message(chat_id=chat_id, text=text)
+
+    else:
+        # خطاهای دیگر
+        bot.send_message(chat_id=admin_chat_id, text=f"❌ خطا در {tag}\n"
+                                                    f"کاربر: {username}\n"
+                                                    f"خطا: {str(e)}\n"
+                                                    f"{traceback.format_exc()}")
+
 def is_spamming(user_id):
     current_time = time.time()
     if user_id in last_click_time:
@@ -96,7 +117,8 @@ def send_welcome(message):
         # markup.add(*row6)
         bot.send_message(message.chat.id, "دستور خود را وارد کنید", reply_markup=markup)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, message.from_user.username, message.chat.id)
+
 
 #endregion
 
@@ -119,7 +141,7 @@ def chose_send_type(call):
         bot.edit_message_text('نوع لشکر کشی خود را انتخاب نمایید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('chose_send_type', e, call.message.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("campaign_type_"))
 def send_army_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -138,7 +160,7 @@ def send_army(call):
                               message_id=call.message.message_id)
         bot.register_next_step_handler(call.message, lambda message : campaign_message(message, campaign_type))
     except Exception as e:
-        send_admin('send_army', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def campaign_message(message,campaign_type):
     try:
         continent, status = get_all_city()
@@ -146,7 +168,7 @@ def campaign_message(message,campaign_type):
             try:
                 bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, f' \n {e}پیام حذف نشد از لشکر کشی')
+                send_admin('2', e, message.from_user.username, message.chat.id)
             bot.send_message(chat_id='1889589121', text=continent)
             send_welcome(message)
             return
@@ -164,7 +186,7 @@ def campaign_message(message,campaign_type):
 
         bot.send_message(chat_id=message.chat.id, text='مبدا حرکتی خود را انتخاب کنید', reply_markup=markup)
     except Exception as e:
-        send_admin('campaign_message', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_continent_"))
 def chose_send_city_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -184,7 +206,7 @@ def chose_send_city(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از لشکر کشی')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=city)
             send_welcome(call.message)
             return
@@ -199,7 +221,7 @@ def chose_send_city(call):
         bot.edit_message_text('قلعه حرکتی خود را انتخاب کنید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('send_army', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_city_"))
 def send_city_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -218,7 +240,7 @@ def send_city(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از لشکر کشی')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=continent)
             send_welcome(call.message)
             return
@@ -234,7 +256,7 @@ def send_city(call):
         bot.edit_message_text('مقصد حرکتی خود را انتخاب کنید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('send_city', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_destination_"))
 def send_destination_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -255,7 +277,7 @@ def send_destination(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, f'{e}\nپیام حذف نشد از لشکر کشی')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id=admin_chat_id, text=country)
             send_welcome(call.message)
             return
@@ -270,7 +292,7 @@ def send_destination(call):
         bot.edit_message_text('قلعه مقصد خود را انتخاب کنید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('send_destination', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("campaign_confirm_"))
 def ask_duration_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -291,7 +313,7 @@ def ask_duration(call):
 
         bot.register_next_step_handler(call.message, lambda message : campaign_confirm(message, destination_id, origin_id, campaign_type))  # انتظار پیام بعدی برای دریافت زمان
     except Exception as e:
-        send_admin('ask_duration', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def campaign_confirm(message, destination_id, origin_id, campaign_type):
     try:
         duration = message.text  # زمان وارد شده توسط کاربر را از متن پیام بگیرید
@@ -302,7 +324,7 @@ def campaign_confirm(message, destination_id, origin_id, campaign_type):
             try:
                 bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از لشکر کشی')
+                send_admin('2', e, message.from_user.username, message.chat.id)
             bot.send_message(chat_id='1889589121', text=property_text)
             send_welcome(message)
             return
@@ -320,7 +342,7 @@ def campaign_confirm(message, destination_id, origin_id, campaign_type):
             image = file_id_naval_campaign[city_id]
         bot.send_photo(chat_id=message.chat.id, photo=image, caption=property_text,reply_markup=markup)
     except Exception as e:
-        send_admin('campaign_confirm', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("campaign_send_"))
 def campaign_confirm_send_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -345,7 +367,7 @@ def campaign_confirm_send(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از لشکر کشی')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=property_text)
             send_welcome(call.message)
             return
@@ -367,16 +389,16 @@ def campaign_confirm_send(call):
         try:
             bot.send_message(chat_id=campaign_chat_id, text=f'{property_text} \n \n لشکر ها \n \n {campaign}')
         except Exception as e:
-            print(e)
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_photo(chat_id=group_chat_id, photo=image, caption=property_text)
         bot.send_message(chat_id=call.message.chat.id, text='لشکر کشی با موفقیت انجام شد')
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(call.message.chat.id,"@mohammadtazar پیام لشکر کشیش حذف نشد یک پیگیزی بکن")
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         send_welcome(call.message)
     except Exception as e:
-        send_admin('campaign_confirm_send', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("desired_campaign_"))
 def desired_campaign_thread(call):
     bot.answer_callback_query(call.id, "در حال پردازش...")
@@ -400,11 +422,11 @@ def desired_campaign(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, 'پیام حذف نشد از دستور آخر لشکر کشی')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_message(chat_id=call.message.chat.id,text=text,reply_markup=markup)
         bot.register_next_step_handler(call.message, lambda  message : send_desired_campaign(message,campaign_type))  # انتظار پیام بعدی برای دریافت زمان
     except Exception as e:
-        send_admin('desired_campaign', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def send_desired_campaign(message,campaign_type):
     try:
         empty_markup = types.ReplyKeyboardRemove()
@@ -432,12 +454,12 @@ def send_desired_campaign(message,campaign_type):
         try:
             bot.send_message(chat_id=campaign_chat_id, text=f'{text} \n \n لشکر ها \n \n {campaign}')
         except Exception as e:
-            print(e)
+            send_admin('2', e, message.from_user.username, message.chat.id)
         bot.send_photo(chat_id=group_chat_id, photo=image, caption=text)
         bot.send_message(chat_id=message.chat.id, text='لشکر کشی با موفقیت انجام شد', reply_markup=empty_markup)
         send_welcome(message)
     except Exception as e:
-        send_admin('send_desired_campaign', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 #endregion
 
 #region حمله
@@ -462,7 +484,7 @@ def attack_type(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text="نوع حمله خود را انتخاب کنید", reply_markup=markup)
     except Exception as e:
-        send_admin('attack_type', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("attack_type_"))
 def attack_message_thread(call):
@@ -484,7 +506,7 @@ def attack_message(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی حمله')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=continent)
             send_welcome(call.message)
             return
@@ -501,7 +523,7 @@ def attack_message(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text="مکان حمله خود را انتخاب کنید", reply_markup=markup)
     except Exception as e:
-        send_admin('attack_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("attack_continent_"))
 def attack_continent_thread(call):
@@ -523,7 +545,7 @@ def attack_continent(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی حمله')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=city)
             send_welcome(call.message)
             return
@@ -539,7 +561,7 @@ def attack_continent(call):
         bot.edit_message_text('قلعه مورد حمله را انتخاب کنید', chat_id=call.message.chat.id,
                               message_id=call.message.message_id, reply_markup=markup)
     except Exception as e:
-        send_admin('attack_continent', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("chose_at_co_"))
 def chose_attack_confirm_thread(call):
@@ -573,7 +595,7 @@ def chose_attack_confirm(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=text, reply_markup=markup)
     except Exception as e:
-        send_admin('chose_attack_confirm', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("attack_confirm_"))
 def attack_confirm_thread(call):
@@ -609,12 +631,12 @@ def attack_confirm(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, 'پیام حذف نشد از حمله')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_photo(chat_id=group_chat_id, photo=image, caption=text)
         bot.send_message(chat_id=call.message.chat.id, text='دستور حمله با موفقیت صادر شد')
         send_welcome(call.message)
     except Exception as e:
-        send_admin('attack_confirm', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("desired_attack_"))
 def desired_attack_thread(call):
@@ -638,11 +660,11 @@ def desired_attack(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, 'پیام حذف نشد از حمله')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_message(chat_id=call.message.chat.id, text=text)
         bot.register_next_step_handler(call.message, lambda message: send_desired_attack(message, type_attack))
     except Exception as e:
-        send_admin('desired_attack', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def send_desired_attack(message, type_attack):
     try:
 
@@ -668,7 +690,7 @@ def send_desired_attack(message, type_attack):
         bot.send_message(chat_id=message.chat.id, text='دستور حمله با موفقیت انجام شد')
         send_welcome(message)
     except Exception as e:
-        send_admin('desired_attack', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 #endregion
 
@@ -689,7 +711,7 @@ def siege_message(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی محاصره')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=continent)
             send_welcome(call.message)
             return
@@ -704,7 +726,7 @@ def siege_message(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text="مکان محاصره خود را انتخاب کنید", reply_markup=markup)
     except Exception as e:
-        send_admin('siege_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("siege_continent_"))
 def siege_co_thread(call):
@@ -724,7 +746,7 @@ def siege_co(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی محاصره')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=city)
             send_welcome(call.message)
             return
@@ -738,7 +760,7 @@ def siege_co(call):
                               message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('siege_co', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("chose_siege_co_"))
 def chose_siege_co_thread(call):
@@ -767,7 +789,7 @@ def chose_siege_co(call):
 
         bot.edit_message_text(chat_id=call.message.chat.id,message_id=call.message.message_id, text=text, reply_markup=markup)
     except Exception as e:
-        send_admin('chose_siege_co', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("siege_confirm_"))
 def siege_confirm_thread(call):
@@ -794,14 +816,14 @@ def siege_confirm(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, 'پیام حذف نشد از  محاصره')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
         bot.send_photo(chat_id=group_chat_id, photo=file_id_siege, caption=text)
         bot.send_message(chat_id=call.message.chat.id, text='محاصره با موفقیت انجام شد')
         send_welcome(call.message)
 
     except Exception as e:
-        send_admin('siege_confirm', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region دارایی
@@ -827,7 +849,7 @@ def property_message(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از دارایی')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=property_text)
             send_welcome(call.message)
             return
@@ -835,7 +857,7 @@ def property_message(call):
         bot.edit_message_text(property_text, chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('property_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region تجارت
@@ -860,7 +882,7 @@ def business_message(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی تجارت')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=continent)
             send_welcome(call.message)
             return
@@ -875,7 +897,7 @@ def business_message(call):
         bot.edit_message_text("خاندان مورد نظر را انتخاب نمایید", chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('business_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("business_continent_"))
 def business_continent_thread(call):
@@ -895,7 +917,7 @@ def business_continent(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی تجارت')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=city)
             send_welcome(call.message)
             return
@@ -909,7 +931,7 @@ def business_continent(call):
                               message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('business_continent', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("business_city_"))
 def business_city_thread(call):
@@ -929,7 +951,7 @@ def business_city(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی تجارت')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=product)
             send_welcome(call.message)
             return
@@ -944,7 +966,7 @@ def business_city(call):
                               reply_markup=markup)
 
     except Exception as e:
-        send_admin('business_city', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("production_city_"))
 def production_city_thread(call):
@@ -964,13 +986,13 @@ def production_city(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, f' {e}پیام حذف نشد از تجارت')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_message(chat_id=call.message.chat.id, text="تعداد مورد نظر را به صورت صحیح وارد نمایید\n"
                                                             "\n"
                                                             "فقط تعداد را وارد نمایید بدون هیچ کلمه اضافه ای")
         bot.register_next_step_handler(call.message, lambda message: confirm_business(message, city,product))
     except Exception as e:
-        send_admin('production_city', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def confirm_business(message, city_id, product_id):
     try:
         amount = message.text
@@ -983,7 +1005,7 @@ def confirm_business(message, city_id, product_id):
             try:
                 bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی تجارت')
+                send_admin('2', e, message.from_user.username, message.chat.id)
             bot.send_message(chat_id='1889589121', text=product_title)
             send_welcome(message)
             return
@@ -998,7 +1020,7 @@ def confirm_business(message, city_id, product_id):
                          f"آیا از تجارت خود اطمینان دارید؟")
         bot.send_message(message.chat.id, text=property_text, reply_markup=markup)
     except Exception as e:
-        send_admin('confirm_business', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("se_bu_"))
 def se_bu_thread(call):
@@ -1024,7 +1046,7 @@ def se_bu(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی تجارت')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=text)
             send_welcome(call.message)
             return
@@ -1034,13 +1056,13 @@ def se_bu(call):
         try:
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         except Exception as e:
-            bot.send_message(admin_chat_id, 'پیام حذف نشد از تجارت')
+            send_admin('2', e, call.message.from_user.username, call.message.chat.id)
         bot.send_message(chat_id=call.message.chat.id, text=f'{text} \n مقدار {amount} {resource_title[0]}\n مقصد {chat_id_send[0][1]} ارسال شد')
         time.sleep(1)
         bot.send_message(chat_id=chat_id_send[0][3], text=f"مقدار {amount} {resource_title[0]} از قلعه {city_title[0][1]} ارسال شد")
         send_welcome(call.message)
     except Exception as e:
-        send_admin('se_bu', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region تویئت
@@ -1066,7 +1088,7 @@ def tweet_message(call):
                               reply_markup=markup)
         bot.register_next_step_handler(call.message, tweet_send)
     except Exception as e:
-        send_admin('tweet_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def tweet_send(message):
     try:
         if message.text == 'انصراف':
@@ -1119,7 +1141,7 @@ def tweet_send(message):
         send_welcome(message)
 
     except Exception as e:
-        send_admin('tweet_send', e, message.from_user.username)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 #endregion
 
 #region ارتقا
@@ -1143,7 +1165,7 @@ def upgrade(call):
         bot.edit_message_text('نوع ارتقا خود را انتخاب نمایید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('upgrade', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("upgrade_military"))
 def upgrade_military_thread(call):
@@ -1161,7 +1183,7 @@ def upgrade_military(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی ارتقا')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=all_economic_build)
             send_welcome(call.message)
             return
@@ -1176,7 +1198,7 @@ def upgrade_military(call):
         bot.edit_message_text('ساختمون مورد نظر برای ارتقا را مشخص کنید', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('upgrade_military', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("upgrade_economic"))
 def upgrade_economic_thread(call):
@@ -1194,7 +1216,7 @@ def upgrade_economic(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی ارتقا')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=all_economic_build)
             send_welcome(call.message)
             return
@@ -1209,7 +1231,7 @@ def upgrade_economic(call):
         bot.edit_message_text('ساختمان مورد نظر برای ارتقا را انتخاب کنید . ', chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('upgrade_economic', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("economic_upgrade_"))
 def economic_upgrade_thread(call):
@@ -1230,7 +1252,7 @@ def economic_upgrade(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی ارتقا')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id='1889589121', text=cost_text)
             send_welcome(call.message)
             return
@@ -1244,7 +1266,7 @@ def economic_upgrade(call):
         bot.edit_message_text(cost_text,chat_id=call.message.chat.id, message_id=call.message.message_id,reply_markup=markup)
 
     except Exception as e:
-        send_admin('economic_upgrade', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("con_upgrade_"))
 def con_upgrade_thread(call):
@@ -1265,7 +1287,7 @@ def con_upgrade(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, 'پیام حذف نشد از خطای دیتابی ارتقا')
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(chat_id=admin_chat_id, text=cost_text)
             send_welcome(call.message)
             return
@@ -1273,7 +1295,7 @@ def con_upgrade(call):
         property_message(call)
 
     except Exception as e:
-        send_admin('con_upgrade', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region اضافه کردن شهر
@@ -1288,7 +1310,7 @@ def add_city(message):
         bot.send_message(chat_id=message.chat.id, text="شهر مورد نظر را وارد نمایید.")
         bot.register_next_step_handler(message, save_add_city)
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 def save_add_city(message):
     try:
         # بررسی ادمین بودن کاربر
@@ -1300,7 +1322,7 @@ def save_add_city(message):
         property_text = save_city(text, message.chat.id)
         bot.send_message(message.chat.id, property_text)
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 #endregion
 
 #region ساخت نیرو
@@ -1323,7 +1345,7 @@ def make_message(call):
         markup.add(item1, item2, item3, item4)
         bot.edit_message_text(text='نوع نیروی خود را وارد نمایید', chat_id=call.message.chat.id,message_id=call.message.message_id, reply_markup=markup)
     except Exception as e:
-        send_admin('make_message', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 #region کشتی
 @bot.callback_query_handler(func=lambda call: call.data=="ship")
@@ -1348,7 +1370,7 @@ def ship(call):
 
         bot.edit_message_text(text='نوع کشتی را انتخاب کنید',chat_id=call.message.chat.id,message_id=call.message.message_id, reply_markup=markup)
     except Exception as e:
-        send_admin('ship', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("add_ship_"))
 def add_ship_thread(call):
@@ -1368,7 +1390,7 @@ def add_ship(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(admin_chat_id, property_text)
             send_welcome(call.message)
             return
@@ -1384,7 +1406,7 @@ def add_ship(call):
                               reply_markup=markup)
 
     except Exception as e:
-        send_admin('add_ship', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ship_config_"))
 def ship_config_thread(call):
@@ -1404,7 +1426,7 @@ def ship_config(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(call.message.chat.id, 'خطایی رخ داده است')
             bot.send_message(admin_chat_id, property_text)
 
@@ -1417,7 +1439,7 @@ def ship_config(call):
         bot.send_message(chat_id=call.message.chat.id, text = property_text)
         send_welcome(call.message)
     except Exception as e:
-        send_admin('ship_config', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region ساخت ادوات
@@ -1443,7 +1465,7 @@ def tools(call):
 
         bot.edit_message_text(text='ادوات خود را انتخاب کنید',chat_id=call.message.chat.id, message_id=call.message.message_id,reply_markup=markup)
     except Exception as e:
-        send_admin('tools', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("add_tools_"))
 def add_tools_thread(call):
@@ -1464,7 +1486,7 @@ def add_tools(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(admin_chat_id, property_text)
             send_welcome(call.message)
             return
@@ -1479,7 +1501,7 @@ def add_tools(call):
         bot.edit_message_text(property_text, chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=markup)
     except Exception as e:
-        send_admin('add_tools', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("tools_config_"))
 def tools_config_thread(call):
@@ -1498,7 +1520,7 @@ def tools_config(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(call.message.chat.id, 'خطایی رخ داده است')
             bot.send_message(admin_chat_id, property_text)
 
@@ -1511,7 +1533,7 @@ def tools_config(call):
         bot.send_message(chat_id=call.message.chat.id, text = property_text)
         send_welcome(call.message)
     except Exception as e:
-        send_admin('tools_config', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 # region ساخت سرباز
 @bot.callback_query_handler(func=lambda call: call.data == "army")
@@ -1541,7 +1563,7 @@ def army(call):
             reply_markup=markup
         )
     except Exception as e:
-        send_admin('army', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("add_army_"))
 def add_army_thread(call):
@@ -1565,7 +1587,7 @@ def add_army(call):
         # ذخیره weapon_id و گرفتن تعداد
         bot.register_next_step_handler(msg, process_army_count, weapon_id)
     except Exception as e:
-        send_admin('add_army', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 def process_army_count(message, weapon_id):
     try:
@@ -1577,7 +1599,7 @@ def process_army_count(message, weapon_id):
             try:
                 bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, message.from_user.username, message.chat.id)
             bot.send_message(admin_chat_id, property_text)
             send_welcome(message)
             return
@@ -1617,7 +1639,7 @@ def army_config(call):
             try:
                 bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
             except Exception as e:
-                bot.send_message(admin_chat_id, str(e))
+                send_admin('2', e, call.message.from_user.username, call.message.chat.id)
             bot.send_message(call.message.chat.id, 'خطایی رخ داده است')
             bot.send_message(admin_chat_id, property_text)
 
@@ -1630,7 +1652,7 @@ def army_config(call):
         bot.send_message(chat_id=call.message.chat.id, text=property_text)
         send_welcome(call.message)
     except Exception as e:
-        send_admin('tools_config', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 # endregion
 
 #endregion
@@ -1653,7 +1675,7 @@ def handle_panel_message(message):
         markup.add(item1, item2,item3,item4)
         bot.send_message(message.chat.id, "دستور خود را وارد کنید", reply_markup=markup)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 #region بازدهی
 @bot.callback_query_handler(func=lambda call: call.data == "resource_efficiency")
 def resource_efficiency(call):
@@ -1671,7 +1693,7 @@ def resource_efficiency(call):
         markup.add(item1,item2)
         bot.edit_message_text(text='حتما قبل از بازدهی خبر بده تا از داده ها بکاپ بگیرم مشکلی پیش نیاد ',message_id=call.message.message_id,chat_id=call.message.chat.id, reply_markup=markup)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data == "config_resource_efficiency")
 def config_resource_efficiency(call):
     bot.answer_callback_query(call.id)
@@ -1683,7 +1705,7 @@ def config_resource_efficiency(call):
         property_text, status = get_resource_efficiency()
         bot.edit_message_text(chat_id=call.message.chat.id,message_id=call.message.message_id, text=property_text)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 #region کم کردن آذوغه
 @bot.callback_query_handler(func=lambda call: call.data == "food")
@@ -1702,7 +1724,7 @@ def food(call):
         bot.edit_message_text(text='حتما قبل از کم کردن غلات خبر بده تا از داده ها بکاپ بگیرم مشکلی پیش نیاد ',
                               message_id=call.message.message_id, chat_id=call.message.chat.id, reply_markup=markup)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data == "costfood")
 def costfood(call):
     if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(
@@ -1714,7 +1736,7 @@ def costfood(call):
         property_text, status = cost_food()
         bot.send_message(call.message.chat.id, property_text)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 # endregion
 #region زدن تلفات
 @bot.callback_query_handler(func=lambda call: call.data == "Casualties")
@@ -1733,7 +1755,7 @@ def Casualties(call):
         bot.edit_message_text(text='حتما قبل از زدن تلفات خبر بده تا از داده ها بکاپ بگیرم مشکلی پیش نیاد ',
                               message_id=call.message.message_id, chat_id=call.message.chat.id, reply_markup=markup)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "costCasualties")
 def costCasualties(call):
@@ -1743,7 +1765,7 @@ def costCasualties(call):
         property_text, status = cost_casualties()
         bot.send_message(call.message.chat.id, property_text)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 #region قلعه های آذوغه منفی
 @bot.callback_query_handler(func=lambda call: call.data == "negative_supply")
@@ -1754,7 +1776,7 @@ def negative_supply(call):
         property_text = get_negative_supply()
         bot.send_message(call.message.chat.id, property_text)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 #endregion
 
@@ -2060,7 +2082,7 @@ def add_resource(message):
                          reply_markup=markup)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("add_resource_"))
 def handle_add_resource(call):
@@ -2080,7 +2102,7 @@ def handle_add_resource(call):
 
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def add_resource_config(message, resource_id):
     try:
         # بررسی کنید که کاربر ادمین باشد
@@ -2094,7 +2116,7 @@ def add_resource_config(message, resource_id):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.message_handler(commands=['cost_resource'])
 def costs_resource(message):
@@ -2120,7 +2142,7 @@ def costs_resource(message):
                          reply_markup=markup)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("costs_resource_"))
 def costs_resource(call):
@@ -2141,7 +2163,7 @@ def costs_resource(call):
 
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 def costs_resource_config(message, resource_id):
     try:
         # بررسی کنید که کاربر ادمین باشد
@@ -2154,7 +2176,7 @@ def costs_resource_config(message, resource_id):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.message_handler(commands=['building_up'])
 def add_building(message):
@@ -2179,7 +2201,7 @@ def add_building(message):
                          reply_markup=markup)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("building_up"))
 def up_level(call):
     try:
@@ -2195,7 +2217,7 @@ def up_level(call):
         bot.send_message(chat_id=call.message.chat.id, text=property_text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 @bot.message_handler(commands=['building_down'])
 def cost_building(message):
     try:
@@ -2219,7 +2241,7 @@ def cost_building(message):
                          reply_markup=markup)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.callback_query_handler(func=lambda call: call.data.startswith("building_down"))
 def down_level(call):
     try:
@@ -2235,7 +2257,7 @@ def down_level(call):
         bot.send_message(chat_id=call.message.chat.id, text=property_text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region داریی شاپ
@@ -2251,7 +2273,7 @@ def add_city(message):
         bot.send_message(admin_chat_id,text='تاسیس الماس انجام شد')
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.message_handler(commands=['promotion_2'])
 def add_city(message):
     try:
@@ -2264,7 +2286,7 @@ def add_city(message):
         bot.send_message(admin_chat_id,text='تاسیس طلایی ای انجام شد')
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.message_handler(commands=['promotion_3'])
 def add_city(message):
     try:
@@ -2276,7 +2298,7 @@ def add_city(message):
         bot.send_message(message.chat.id, text)
         bot.send_message(admin_chat_id,text='تاسیس نقره ای انجام شد')
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.message_handler(commands=['base_property'])
 def add_city(message):
     try:
@@ -2288,7 +2310,7 @@ def add_city(message):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.message_handler(commands=['remove_property'])
 def remove_city(message):
     try:
@@ -2300,7 +2322,7 @@ def remove_city(message):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 @bot.message_handler(commands=['up_city'])
 def up_city(message):
     try:
@@ -2312,7 +2334,7 @@ def up_city(message):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, str(e))
+        send_admin('2', e, message.from_user.username, message.chat.id)
 #endregion
 
 #region تشخیص اژدها
@@ -2382,7 +2404,7 @@ def cansel(call):
         # markup.add(*row6)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,text="دستور خود را وارد نمایید", reply_markup=markup)
     except Exception as e:
-        send_admin('cansel', e, call.from_user.username)
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 #endregion
 
 #region اضافه کردن شهر به دیتابیس
@@ -2410,7 +2432,7 @@ def add_database(message):
                          reply_markup=markup)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, f"❌ خطا در اجرای `add_database`:\n{str(e)}")
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("city_add_"))
@@ -2428,7 +2450,7 @@ def city_add(call):
         bot.register_next_step_handler(call.message, lambda message: add_city_config(message, parent_id))
 
     except Exception as e:
-        bot.send_message(admin_chat_id, f"❌ خطا در `city_add`:\n{str(e)}")
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
 
 
 def add_city_config(message, parent_id):
@@ -2443,7 +2465,7 @@ def add_city_config(message, parent_id):
         bot.register_next_step_handler(message, lambda msg: add_family_config(msg, parent_id, title))
 
     except Exception as e:
-        bot.send_message(admin_chat_id, f"❌ خطا در `add_city_config`:\n{str(e)}")
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 
 def add_family_config(message, parent_id, title):
@@ -2458,18 +2480,111 @@ def add_family_config(message, parent_id, title):
         bot.send_message(message.chat.id, text)
 
     except Exception as e:
-        bot.send_message(admin_chat_id, f"❌ خطا در `add_family_config`:\n{str(e)}")
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 
 #endregion
 
+#region ارتثای چند تایی
+@bot.message_handler(commands=['multiple_upgrades'])
+def multiple_upgrades(message):
+    try:
+        production, status = get_production()
+        if not status:
+            bot.send_message(chat_id=message.chat.id, text=production)
+            return
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup_list = []
+        for item in production:
+            markup_list.append(
+                types.InlineKeyboardButton(text=item['Title'], callback_data=f'multiple_building_upgrade_{item['Id']}'))
+        item2 = types.InlineKeyboardButton("🔙 بازگشت", callback_data="cancel")
+        markup.add(*markup_list, item2)
+        bot.send_message(chat_id = message.chat.id,text = "ساختمان مورد نظر را انتخاب نمایید :",reply_markup=markup)
+    except Exception as e:
+        send_admin('2', e, message.from_user.username, message.chat.id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("multiple_building_upgrade"))
+def multiple_building_upgrade_thread(call):
+    try:
+        bot.answer_callback_query(call.id, "در حال پردازش...")
+        if is_spamming(call.message.chat.id):
+            bot.send_message(call.message.chat.id, "پشت هم منو انگشت نکن")
+            return
+        run_in_thread(multiple_building_upgrade, call)
+    except Exception as e:
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
+def multiple_building_upgrade(call):
+    try:
+        data = call.data.split('_')
+        building_id = data[3]
+        property_text, status = get_cost(building_id, call.message.chat.id)
+        if not status:
+            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+            bot.send_message(chat_id=call.message.chat.id, text=property_text)
+            send_welcome(call.message)
+            return
+        property_text += "\n\n تعداد لول های خود را به صورت عددی وارد نمایید."
+        bot.edit_message_text(text = property_text,chat_id=call.message.chat.id,message_id=call.message.message_id)
+        bot.register_next_step_handler(call.message, lambda message: amount_multiple_building(message, building_id))
+
+    except Exception as e:
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
+
+def amount_multiple_building(message, building_id):
+    try:
+        amount = message.text
+        if not amount.isdigit():
+            bot.send_message(message.chat.id, "خیلی خری دارم میگم عدد بزنم دوباره عدداو وارد کن")
+            bot.register_next_step_handler(message, lambda new_message: amount_multiple_building(new_message, building_id))
+            return
+        amount = int(amount)
+        property_text, status = get_multiple_cost(building_id, message.chat.id,amount)
+        if not status:
+            bot.send_message(chat_id=message.chat.id, text=property_text)
+            return
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        item1 = types.InlineKeyboardButton("🔙 بازگشت", callback_data="cancel")
+        item2 = types.InlineKeyboardButton("تایید", callback_data=f"multiple_building_confirm_{building_id}_{amount}")
+        markup.add(item2, item1)
+        bot.send_message(chat_id = message.chat.id,text = property_text, reply_markup=markup)
+    except Exception as e:
+        send_admin('2', e, message.from_user.username, message.chat.id)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("multiple_building_confirm"))
+def multiple_building_confirm_thread(call):
+    try:
+        bot.answer_callback_query(call.id, "در حال پردازش...")
+        if is_spamming(call.message.chat.id):
+            bot.send_message(call.message.chat.id, "پشت هم منو انگشت نکن")
+            return
+        run_in_thread(multiple_building_confirm, call)
+    except Exception as e:
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
+def multiple_building_confirm(call):
+    try:
+        data = call.data.split('_')
+        production_id = data[3]
+        amount = int(data[4])
+        property_text, status = get_confirm_multiple_cost(call.message.chat.id, production_id,amount)
+        if not status:
+            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+            bot.send_message(chat_id=call.message.chat.id, text=property_text)
+            send_welcome(call.message)
+            return
+        bot.send_message(chat_id=call.message.chat.id, text=property_text)
+        time.sleep(1)
+        property_message_thread(call)
+    except Exception as e:
+        send_admin('2', e, call.message.from_user.username, call.message.chat.id)
+
+#endregion
 @bot.message_handler(func=lambda message: 'هزینه ارتقا' in message.text.lower())
 def all_building_costs(message):
     try:
        text = get_all_building_costs_and_profits()
        bot.send_message(chat_id=message.chat.id, text=text)
     except Exception as e:
-        bot.send_message(admin_chat_id, e)
+        send_admin('2', e, message.from_user.username, message.chat.id)
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -2478,7 +2593,7 @@ def handle_photo(message):
         file_id = message.photo[-1].file_id
         print(file_id)
     except Exception as e:
-        bot.send_message(message.chat.id, f"Error: {str(e)}")
+        send_admin('2', e, message.from_user.username, message.chat.id)
 def main():
     try:
         bot.polling(non_stop=True, interval=0, timeout=30)

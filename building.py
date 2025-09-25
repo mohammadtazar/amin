@@ -56,7 +56,32 @@ def get_economic():
         return result, True
     except Exception as e:
         return str(e), False
-
+def get_production():
+    try:
+        # اتصال به دیتابیس
+        mydb = mysql.connector.connect(
+            host=config.host,
+            user=config.user,
+            password=config.password,
+            database=config.database
+        )
+        cursor = mydb.cursor(dictionary=True)
+        # اجرای کوئری
+        try:
+            build_all_city = f'''
+                                  SELECT Id, Title
+                                  FROM building
+                                  WHERE type in(1,2)
+                                  '''
+            cursor.execute(build_all_city)
+            result = cursor.fetchall()
+        except mysql.connector.Error as err:
+            return str(err), False
+        cursor.close()
+        mydb.close()
+        return result, True
+    except Exception as e:
+        return str(e), False
 def get_cost(build_id,chat_id):
     try:
         # اتصال به دیتابیس
@@ -485,3 +510,167 @@ def get_down_level(chat_id,building_id):
         return f'ساختمان {building_title} با موفیقت یک لول کم شد '
     except Exception as e:
         return str(e), False
+
+def get_multiple_cost(build_id, chat_id, level):
+    try:
+        # اتصال به دیتابیس
+        mydb = mysql.connector.connect(
+            host=config.host,
+            user=config.user,
+            password=config.password,
+            database=config.database
+        )
+        cursor = mydb.cursor()
+
+        # دریافت لول فعلی ساختمان
+        cursor.execute('''
+            SELECT bc.Level
+            FROM building_city bc
+            JOIN citytribe c ON c.id = bc.CityId
+            WHERE c.ChatId = %s AND bc.BuildingId = %s
+        ''', (chat_id, build_id))
+        build_level = cursor.fetchone()
+
+        if not build_level:
+            current_level = 0
+        else:
+            current_level = build_level[0]
+        target_level = current_level + level
+
+        # اگر ساختمان معمولی بود (طبق جدول building_cost)
+        cursor.execute('''
+            SELECT bc.InitialValue, bc.SecondValue, r.Title
+            FROM building_cost bc
+            JOIN property r ON r.Id = bc.PropertyId
+            WHERE bc.BuildingId = %s
+        ''', (build_id,))
+        cost_build = cursor.fetchall()
+
+        total_costs = {}
+        for lvl in range(current_level + 1, target_level + 1):
+            for initial_value, second_value, res_title in cost_build:
+                required = initial_value + (second_value * lvl)
+                total_costs[res_title] = total_costs.get(res_title, 0) + required
+
+        property_text = f"\nهزینه ارتقا از لول {current_level} به {target_level}:"
+        for res, val in total_costs.items():
+            property_text += f"\n {res} : {val}"
+        property_text += "\n\nآیا از ارتقای خود اطمینان دارید؟"
+
+        cursor.close()
+        mydb.close()
+
+        return property_text, True
+
+    except Exception as e:
+        return str(e), False
+def get_confirm_multiple_cost(build_id, chat_id, level):
+    try:
+        mydb = mysql.connector.connect(
+            host=config.host,
+            user=config.user,
+            password=config.password,
+            database=config.database
+        )
+        cursor = mydb.cursor()
+        mydb.start_transaction()
+
+        # دریافت عنوان ساختمان
+        cursor.execute("SELECT Title FROM building WHERE Id = %s", (build_id,))
+        build_title = cursor.fetchone()
+
+        # دریافت سطح ساختمان فعلی
+        cursor.execute('''
+            SELECT bc.Level
+            FROM building_city bc
+            JOIN citytribe c ON c.id = bc.CityId
+            WHERE c.ChatId = %s AND bc.BuildingId = %s
+        ''', (chat_id, build_id))
+        build_level = cursor.fetchone()
+
+        if not build_level:
+            current_level = 0
+            first = True
+        else:
+            current_level = build_level[0]
+            first = False
+        target_level = current_level + level
+        if target_level > 50:
+            return "بیشتر از لول 50 امکان‌پذیر نیست.", False
+
+        # دریافت دارایی‌های شهر
+        cursor.execute('''
+            SELECT pc.PropertyId, pc.Amount
+            FROM property_city pc
+            JOIN citytribe c ON c.id = pc.CityId
+            WHERE c.ChatId = %s
+        ''', (chat_id,))
+        property_rows = cursor.fetchall()
+        property_dict = {item[0]: item[1] for item in property_rows}
+
+        # محاسبه هزینه کل
+        total_costs = {}
+
+        if build_id in (13, 14, 18):  # ساختمان‌های خاص
+            for lvl in range(current_level + 1, target_level + 1):
+                costs = get_specil_build_cost_make(build_id, lvl)
+                if not costs:
+                    return f"برای سطح {lvl} هزینه تعریف نشده است.", False
+                for res_id, amount in costs.items():
+                    total_costs[res_id] = total_costs.get(res_id, 0) + amount
+        else:  # ساختمان‌های معمولی
+            cursor.execute('''
+                SELECT bc.InitialValue, bc.SecondValue, r.Id
+                FROM building_cost bc
+                JOIN property r ON r.Id = bc.PropertyId
+                WHERE bc.BuildingId = %s
+            ''', (build_id,))
+            cost_build = cursor.fetchall()
+
+            for lvl in range(current_level + 1, target_level + 1):
+                for initial_value, second_value, res_id in cost_build:
+                    required_amount = initial_value + (second_value * lvl)
+                    total_costs[res_id] = total_costs.get(res_id, 0) + required_amount
+
+        # بررسی منابع
+        for res_id, total_required in total_costs.items():
+            available_amount = property_dict.get(res_id, 0)
+            if available_amount < total_required:
+                return f'منبع {res_id} کافی نیست. نیاز: {total_required} موجودی: {available_amount}', True
+
+        # کم کردن منابع
+        update_query = '''
+            UPDATE property_city 
+            SET Amount = Amount - %s
+            WHERE CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
+            AND PropertyId = %s
+        '''
+        for res_id, total_required in total_costs.items():
+            cursor.execute(update_query, (total_required, chat_id, res_id))
+
+        # ثبت یا ارتقا ساختمان
+        if first:
+            cursor.execute("SELECT Id FROM citytribe WHERE ChatId = %s", (chat_id,))
+            city_id = cursor.fetchall()[0][0]
+            cursor.execute(
+                "INSERT INTO building_city (BuildingId, CityId, Level) VALUES (%s, %s, %s)",
+                (build_id, city_id, target_level)
+            )
+        else:
+            cursor.execute('''
+                UPDATE building_city
+                SET Level = %s
+                WHERE BuildingId = %s AND CityId = (SELECT Id FROM citytribe WHERE ChatId = %s)
+            ''', (target_level, build_id, chat_id))
+
+        mydb.commit()
+        return f'ساختمان {build_title[0]} با موفقیت از سطح {current_level} به سطح {target_level} ارتقا یافت', True
+
+    except Exception as e:
+        mydb.rollback()
+        return str(e), False
+    finally:
+        cursor.close()
+        mydb.close()
+
+
