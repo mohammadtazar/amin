@@ -50,7 +50,7 @@ file_id_siege = 'AgACAgQAAxkBAAM0aNGNKcSR4sF69uEJVm0EQJBeGrIAAlPLMRtYGpBS4Ssxlug
 file_id_attack = 'AgACAgQAAxkBAAM1aNGNf4xOTt_JNfn2fnpAju-stkMAAlXLMRtYGpBSH7QAAbiP81DGAQADAgADeQADNgQ'
 group_chat_id = '@BloodyThrone_Main'
 tweet_chat_id = '@BloodyThrone_Tweet'
-admin_panel = '-4786037295'
+admin_panel = '-4952604544'
 
 # def send_admin(text, error, user_id):
 #     try:

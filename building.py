@@ -564,20 +564,24 @@ def get_multiple_cost(build_id, chat_id, level):
 
     except Exception as e:
         return str(e), False
-def get_confirm_multiple_cost(build_id, chat_id, level):
+def get_confirm_multiple_cost(chat_id,build_id, level):
     try:
+        print(build_id, chat_id, level)
         mydb = mysql.connector.connect(
             host=config.host,
             user=config.user,
             password=config.password,
             database=config.database
         )
-        cursor = mydb.cursor()
+        cursor = mydb.cursor(dictionary=True)  # خروجی به صورت دیکشنری
         mydb.start_transaction()
-
+        build_id = int(build_id)
         # دریافت عنوان ساختمان
         cursor.execute("SELECT Title FROM building WHERE Id = %s", (build_id,))
-        build_title = cursor.fetchone()
+        build_row = cursor.fetchone()
+        if not build_row:
+            return "❌ ساختمان مورد نظر یافت نشد.", False
+        build_title = build_row["Title"]
 
         # دریافت سطح ساختمان فعلی
         cursor.execute('''
@@ -592,8 +596,9 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
             current_level = 0
             first = True
         else:
-            current_level = build_level[0]
+            current_level = build_level["Level"]
             first = False
+
         target_level = current_level + level
         if target_level > 50:
             return "بیشتر از لول 50 امکان‌پذیر نیست.", False
@@ -606,7 +611,7 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
             WHERE c.ChatId = %s
         ''', (chat_id,))
         property_rows = cursor.fetchall()
-        property_dict = {item[0]: item[1] for item in property_rows}
+        property_dict = {row["PropertyId"]: row["Amount"] for row in property_rows}
 
         # محاسبه هزینه کل
         total_costs = {}
@@ -620,7 +625,7 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
                     total_costs[res_id] = total_costs.get(res_id, 0) + amount
         else:  # ساختمان‌های معمولی
             cursor.execute('''
-                SELECT bc.InitialValue, bc.SecondValue, r.Id
+                SELECT bc.InitialValue, bc.SecondValue, r.Id AS PropertyId
                 FROM building_cost bc
                 JOIN property r ON r.Id = bc.PropertyId
                 WHERE bc.BuildingId = %s
@@ -628,9 +633,9 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
             cost_build = cursor.fetchall()
 
             for lvl in range(current_level + 1, target_level + 1):
-                for initial_value, second_value, res_id in cost_build:
-                    required_amount = initial_value + (second_value * lvl)
-                    total_costs[res_id] = total_costs.get(res_id, 0) + required_amount
+                for row in cost_build:
+                    required_amount = row["InitialValue"] + (row["SecondValue"] * lvl)
+                    total_costs[row["PropertyId"]] = total_costs.get(row["PropertyId"], 0) + required_amount
 
         # بررسی منابع
         for res_id, total_required in total_costs.items():
@@ -651,7 +656,11 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
         # ثبت یا ارتقا ساختمان
         if first:
             cursor.execute("SELECT Id FROM citytribe WHERE ChatId = %s", (chat_id,))
-            city_id = cursor.fetchall()[0][0]
+            city_row = cursor.fetchone()
+            if not city_row:
+                return "❌ شهری برای این کاربر یافت نشد.", False
+            city_id = city_row["Id"]
+
             cursor.execute(
                 "INSERT INTO building_city (BuildingId, CityId, Level) VALUES (%s, %s, %s)",
                 (build_id, city_id, target_level)
@@ -664,13 +673,12 @@ def get_confirm_multiple_cost(build_id, chat_id, level):
             ''', (target_level, build_id, chat_id))
 
         mydb.commit()
-        return f'ساختمان {build_title[0]} با موفقیت از سطح {current_level} به سطح {target_level} ارتقا یافت', True
+        return f'ساختمان {build_title} با موفقیت از سطح {current_level} به سطح {target_level} ارتقا یافت ✅', True
 
     except Exception as e:
         mydb.rollback()
-        return str(e), False
+        return f"❌ خطا: {str(e)}", False
     finally:
         cursor.close()
         mydb.close()
-
 

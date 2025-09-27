@@ -126,7 +126,7 @@ def get_property(chat_id, name):
             if current_building_type != b_type:
                 current_building_type = b_type
                 property_text += "\n"
-            image = image_production.get(b_id)
+            image = image_production.get(b_id,"⭐")
             profit_display = f"[{int(profit * 1.5)}] ⭐" if b_id in double_property_ids else (f"[{profit}]" if profit else "")
             property_text += f'{image} {b_title} ⊱ {level} {profit_display}\n'
 
