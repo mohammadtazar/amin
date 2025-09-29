@@ -17,7 +17,7 @@ def get_military():
             build_all_city = f'''
                                SELECT Id, Title
                                FROM building
-                               WHERE type = 2 or type = 3 or type = 4
+                               WHERE type = 2 or type = 3 or type = 4 or type = 0
                                '''
             cursor.execute(build_all_city)
             result = cursor.fetchall()
