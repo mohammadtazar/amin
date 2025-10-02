@@ -94,6 +94,7 @@ def get_cost(build_id,chat_id):
         cursor = mydb.cursor()
 
         try:
+            build_id = int(build_id)
             build_level_query = f'''
                                SELECT bc.id, bc.Level
                                FROM building_city bc
@@ -257,7 +258,7 @@ def get_confirm_cost(build_id, chat_id):
         property_dict = {item[0]: item[1] for item in property_rows}
 
         updates = []
-
+        build_id = int(build_id)
         # اگر ساختمان خاص بود
         if build_id in (13, 14, 18):
             costs = get_specil_build_cost_make(build_id, level)
