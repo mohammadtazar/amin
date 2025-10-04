@@ -18,7 +18,7 @@ def get_resource_efficiency():
                 cursor.execute("SELECT Id, ParentId FROM citytribe WHERE ParentId IS NOT NULL")
                 cities = cursor.fetchall()
 
-                # دریافت اطلاعات ساختمان‌های سودآور
+                # # دریافت اطلاعات ساختمان‌های سودآور
                 cursor.execute("SELECT BuildingId, PropertyId, PrimaryProperty FROM profit_building")
                 profit_building = {row[0]: {'ResourceId': row[1], 'PrimaryProperty': row[2]} for row in
                                    cursor.fetchall()}
@@ -116,7 +116,7 @@ def cost_food():
                     infantry_query = '''
                         SELECT Amount 
                         FROM property_city
-                        WHERE CityId = %s AND PropertyId IN (11, 12, 13)
+                        WHERE CityId = %s AND PropertyId IN (11, 12, 13,22)
                     '''
                     cursor.execute(infantry_query, (city[0],))
                     infantries = cursor.fetchall()
@@ -126,14 +126,22 @@ def cost_food():
                     special_query = '''
                         SELECT Amount 
                         FROM property_city
-                        WHERE CityId = %s AND PropertyId IN (14, 22)
+                        WHERE CityId = %s AND PropertyId = 14
                     '''
                     cursor.execute(special_query, (city[0],))
                     special = cursor.fetchall()
                     special_sum = sum([row[0] for row in special]) * 2 if special else 0
-
+                    # دریافت اطلاعات کاستوم
+                    coustom_query = '''
+                        SELECT Amount 
+                        FROM property_city
+                        WHERE CityId = %s AND PropertyId = 28
+                    '''
+                    cursor.execute(coustom_query, (city[0],))
+                    coustom = cursor.fetchall()
+                    coustom_sum = sum([row[0] for row in special]) * 3 if coustom else 0
                     # مجموع هزینه‌ها
-                    sum_cost = infantries_sum + special_sum
+                    sum_cost = infantries_sum + special_sum + coustom_sum
 
                     # دریافت اطلاعات ماهی
                     fish_query = '''
@@ -146,7 +154,7 @@ def cost_food():
 
                     # بررسی وجود ماهی و اجرای کوئری‌های مرتبط
                     if fish:
-                        fish_amount = fish[0] * 2
+                        fish_amount = fish[0]
                         fish_id = fish[1]
 
                         # اگر ماهی کافی بود به شهر بعدی برو
@@ -170,48 +178,48 @@ def cost_food():
                             sum_cost = sum_cost - fish_amount
 
                     # استفاده از گوشت اگر ماهی کافی نبود
-                    if sum_cost > 0:
-                        beef_query = '''
-                            SELECT Amount, Id
-                            FROM property_city
-                            WHERE CityId = %s AND PropertyId = 8
-                        '''
-                        cursor.execute(beef_query, (city[0],))
-                        beef = cursor.fetchone()
-
-                        if beef:
-                            beef_amount = beef[0] * 3
-                            beef_id = beef[1]
-                            if beef_amount >= sum_cost:
-                                new_beef_amount = (beef_amount - sum_cost)
-                                update_beef_query = '''
-                                    UPDATE property_city
-                                    SET Amount = %s
-                                    WHERE Id = %s
-                                '''
-                                cursor.execute(update_beef_query, (new_beef_amount, beef_id))
-                                sum_cost = 0
-                            else:
-                                update_beef_query = '''
-                                    UPDATE property_city
-                                    SET Amount = 0
-                                    WHERE Id = %s
-                                '''
-                                cursor.execute(update_beef_query, (beef_id,))
-                                sum_cost = sum_cost - beef_amount
+                    # if sum_cost > 0:
+                        # beef_query = '''
+                        #     SELECT Amount, Id
+                        #     FROM property_city
+                        #     WHERE CityId = %s AND PropertyId = 8
+                        # '''
+                        # cursor.execute(beef_query, (city[0],))
+                        # beef = cursor.fetchone()
+                        #
+                        # if beef:
+                        #     beef_amount = beef[0] * 2
+                        #     beef_id = beef[1]
+                        #     if beef_amount >= sum_cost:
+                        #         new_beef_amount = (beef_amount - sum_cost)
+                        #         update_beef_query = '''
+                        #             UPDATE property_city
+                        #             SET Amount = %s
+                        #             WHERE Id = %s
+                        #         '''
+                        #         cursor.execute(update_beef_query, (new_beef_amount, beef_id))
+                        #         sum_cost = 0
+                        #     else:
+                        #         update_beef_query = '''
+                        #             UPDATE property_city
+                        #             SET Amount = 0
+                        #             WHERE Id = %s
+                        #         '''
+                        #         cursor.execute(update_beef_query, (beef_id,))
+                        #         sum_cost = sum_cost - beef_amount
 
                     # استفاده از گندم اگر ماهی و گوشت کافی نبود
                     if sum_cost > 0:
                         wheat_query = '''
                             SELECT Amount, Id
                             FROM property_city
-                            WHERE CityId = %s AND PropertyId = 10
+                            WHERE CityId = %s AND PropertyId = 8
                         '''
                         cursor.execute(wheat_query, (city[0],))
                         wheat = cursor.fetchone()
 
                         if wheat:
-                            wheat_amount = wheat[0]
+                            wheat_amount = wheat[0] * 2
                             wheat_id = wheat[1]
                             if wheat_amount >= sum_cost:
                                 new_wheat_amount = wheat_amount - sum_cost
@@ -246,7 +254,7 @@ def cost_food():
 def cost_casualties():
     try:
         # لیست منابع مختلف پیاده‌نظام بر اساس ResourceId
-        resources = [(11, 'swordsman'), (12, 'archer'), (13, 'speared'),(14,'cavalry'),(22,'special')]
+        resources = [(11, 'swordsman'), (12, 'archer'), (13, 'speared'),(14,'cavalry'),(22,'special'),(28,'coustom')]
 
         # اتصال به دیتابیس
         with mysql.connector.connect(
@@ -261,7 +269,7 @@ def cost_casualties():
                     SELECT pc.Id, pc.CityId, pc.Amount, c.Title
                     FROM property_city pc
                     JOIN citytribe c ON pc.CityId = c.Id
-                    WHERE pc.Amount < 0 AND pc.PropertyId = 10
+                    WHERE pc.Amount < 0 AND pc.PropertyId = 8
                 '''
                 cursor.execute(cereal_query)
                 cereal = cursor.fetchall()
@@ -282,6 +290,7 @@ def cost_casualties():
                             "speared": 0,
                             "cavalry" : 0,
                             "special" : 0,
+                            "coustom" : 0,
                             "title": city_title,
                         }
 
@@ -298,10 +307,9 @@ def cost_casualties():
                         unit = cursor.fetchone()
 
                         if unit and unit[0] > 0:
-                            unit_amount = unit[0] * 2 if resource_id == 14  else unit[0]
+                            unit_amount = unit[0]
                             if unit_amount > cereal_residue:
                                 cost = unit_amount - cereal_residue
-                                cost = cost / 2 if resource_id == 14 else cost
                                 update_query = '''
                                     UPDATE property_city
                                     SET Amount = %s 
@@ -343,6 +351,7 @@ def cost_casualties():
         report_message += f" - نیزه‌دار: {losses['speared']} نفر کاهش یافت.\n"
         report_message += f" - سواره نظام: {losses['cavalry']} نفر کاهش یافت.\n"
         report_message += f" - نیروی ویژه: {losses['special']} نفر کاهش یافت.\n"
+        report_message += f" - نیروی کاستوم شده: {losses['coustom']} نفر کاهش یافت.\n"
 
     return report_message, True
 def get_negative_supply():
@@ -361,11 +370,11 @@ def get_negative_supply():
                        FROM property_city pc
                        join citytribe c
                        on pc.CityId = c.Id
-                       WHERE pc.Amount < 0 AND pc.PropertyId = 10
+                       WHERE pc.Amount < 0 AND pc.PropertyId = 8
                    '''
                 cursor.execute(cereal_query)
                 cereal = cursor.fetchall()
-            property_text = 'قلعه ها دارای گندم منفی'
+            property_text = 'قلعه ها دارای گوشت منفی'
             for item in cereal:
                 property_text += f'شهر : {item[1]} تعداد : {item[0]}'
         return property_text
