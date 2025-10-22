@@ -21,7 +21,7 @@ from making import (get_all_ship,get_config_ship,get_cost_ship,get_cost_tools,ge
 from upgrate import cost_food,cost_casualties,get_negative_supply,get_resource_efficiency,get_up_city
 admin_chat_id = '1889589121'
 admin_chat_second_id ='6968676246'
-admin_chat_tree_id = '0'
+admin_chat_tree_id = '8056598555'
 BOT_TOKEN = '7573605568:AAFAatB0133sDm5KkuK3Wxezxn6cipNdfGo'
 campaign_chat_id = '-4786037295'
 bot = telebot.TeleBot(BOT_TOKEN)
