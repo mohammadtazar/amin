@@ -482,18 +482,20 @@ def promotion(chat_id, promotion_id):
 
                 if int(promotion_id) == 1:
                     resources = [
-                        (city_id, 3, 30000), (city_id, 2, 60),(city_id, 36, 43),
+                        (city_id, 3, 30000), (city_id, 2, 60),(city_id, 36, 50),
                         (city_id, 4, 3000), (city_id, 5, 3000), (city_id, 6, 2000), (city_id, 7, 800),(city_id, 8, 500),
                         (city_id, 11, 80), (city_id, 12, 80),
                         (city_id, 13, 80), (city_id, 14, 80), (city_id, 22, 80),
                         (city_id, 15, 10), (city_id, 16, 10), (city_id, 17, 6),
                         (city_id, 18, 6),(city_id, 20, 2),
                         (city_id, 29, 200), (city_id, 30, 200), (city_id, 31, 200), (city_id, 32, 200),
-                        (city_id, 33, 50), (city_id, 35, 500),(city_id, 34, 20),
+                        (city_id, 33, 50), (city_id, 35, 500),(city_id, 34, 20),(city_id, 44, 200),
+                        (city_id, 37, 1), (city_id, 38, 1), (city_id, 39, 1), (city_id, 40, 1), (city_id, 41, 1),
+                        (city_id, 42, 1), (city_id, 43, 1)
                     ]
                     buildings = [
                         (city_id, 1, 5), (city_id, 2, 3), (city_id, 3, 3), (city_id, 4, 3), (city_id, 7, 3),
-                        (city_id, 8, 2), (city_id, 9,2), (city_id, 10, 2), (city_id, 11,2), (city_id, 12, 2),
+                        (city_id, 8, 2), (city_id, 9,2), (city_id, 10, 2), (city_id, 11,2), (city_id, 12, 2),(city_id, 19, 2),
                         (city_id, 13, 1), (city_id, 14, 2), (city_id, 15, 3), (city_id, 16, 3), (city_id, 17, 2), (city_id, 18, 1)
 
                     ]
@@ -535,13 +537,13 @@ def promotion(chat_id, promotion_id):
                         (city_id, 15, 5), (city_id, 16, 5), (city_id, 17, 2),
                         (city_id, 18, 2),
                         (city_id, 29, 20),(city_id, 30, 20),(city_id, 31, 20),(city_id, 32, 60),
-                        (city_id, 33, 20),(city_id, 35, 200),
+                        (city_id, 33, 20),(city_id, 35, 200),(city_id, 44, 60)
                     ]
                     buildings = [
                         (city_id, 1, 1), (city_id, 2, 1), (city_id, 3, 1), (city_id, 4, 1), (city_id, 7, 1),
                         (city_id, 8, 1), (city_id, 9, 1), (city_id, 10, 1), (city_id, 11, 1), (city_id, 12, 1),
-                        (city_id, 13, 1), (city_id, 14, 1), (city_id, 15, 1), (city_id, 16, 1), (city_id, 17, 1),(city_id, 18, 1)
-
+                        (city_id, 13, 1), (city_id, 14, 1), (city_id, 15, 1), (city_id, 16, 1), (city_id, 17, 1),(city_id, 18, 1),
+                        (city_id, 19, 1)
                     ]
 
                 # درج داده‌ها در دیتابیس
