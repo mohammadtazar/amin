@@ -472,132 +472,177 @@ def get_all_army():
     except Exception as e:
         return str(e), False
 
-def get_cost_army(tools_id,count):
+def get_cost_army(tools_id, count, parent_id):
     try:
         tools_id = int(tools_id)
+        parent_id = int(parent_id)
+
+        # نیروهای معمولی
         tools_data = {
-            11: ('شمشیرزن', 10, 1, 1, 1, 0, 0, 0,1),
-            12: ('کماندار', 15, 1, 1, 0, 1, 0, 0,0),
-            13: ('نیزه دار', 10, 1, 1, 0, 0, 1, 0,1),
-            14: ('سواره', 20, 1, 1, 1, 0, 0, 1,1),
-            22: ('نیرو ویژه', 25, 1, 1, 0, 0, 1, 0),
+            11: ('شمشیرزن', 10, 1, 1, 1, 0, 0, 0, 1),
+            12: ('کماندار', 15, 1, 1, 0, 1, 0, 0, 0),
+            13: ('نیزه دار', 10, 1, 1, 0, 0, 1, 0, 1),
+            14: ('سواره', 20, 1, 1, 1, 0, 0, 1, 1),
         }
 
-        if tools_id not in tools_data:
-            return 'اگر رو سرباز کاستوم زدی که هیچی اگر نزدی به بات زن اطلاع بده', 0, True
+        # نیروهای ویژه — بر اساس parent_id
+        special_units = {
+            146: ('نیروی ویژه شمال', 25, 1, 1, 1, 0, 0, 0, 1),
+            147: ('نیروی ویژه ویل', 25, 1, 1, 0, 0, 1, 1, 1),
+            148: ('نیروی ویژه ریور', 25, 1, 1, 0, 1, 0, 0, 0),
+            149: ('نیروی ویژه کرونز', 25, 1, 1, 1, 0, 0, 0, 1),
+            150: ('نیروی ویژه جزایر', 25, 1, 1, 1, 0, 0, 0, 1),
+            151: ('نیروی ویژه استورم', 25, 1, 1, 1, 0, 0, 0, 1),
+            152: ('نیروی ویژه ریچ', 25, 1, 1, 1, 0, 0, 0, 1),
+            153: ('نیروی ویژه وستر', 25, 1, 1, 1, 0, 0, 0, 1),
+            154: ('نیروی ویژه دورن', 25, 1, 1, 0, 0, 1, 0, 1),
+        }
 
-        army_name, coins, serf, armor, sword, arrow, spear, horse, separ = tools_data[tools_id]
+        # بررسی اینکه نیرو ویژه است یا نه
+        if tools_id == 22:
+            if parent_id not in special_units:
+                return f"⚠ نوع نیرو ویژه با ParentId={parent_id}ادمین بات رو خبر کن تعریف نشده.", 0, False
+            army_data = special_units[parent_id]
+        elif tools_id in tools_data:
+            army_data = tools_data[tools_id]
+        else:
+            return "اگر رو سرباز کاستوم زدی که هیچی، اگر نزدی به بات زن اطلاع بده", 0, True
 
-        # قالب‌بندی متن خروجی
-        property_text = (f'{count} {army_name}\n'
-                         f'هزینه\n'
-                         f'{coins * count} سکه\n'
-                         f'{serf * count} رعیت\n'
-                         f'{armor * count} زره\n'
-                         f'{sword * count} شمشیر\n'
-                         f'{arrow * count} کمان\n'
-                         f'{spear * count} نیزه\n'
-                         f'{horse * count} اسب\n'
-                         f'{separ * count} سپر\n'
-                         )
+        # باز کردن داده‌ها
+        army_name, coins, serf, armor, sword, arrow, spear, horse, separ = army_data
+
+        # قالب خروجی
+        property_text = (
+            f"{count} {army_name}\n"
+            f"💰 هزینه:\n"
+            f"{coins * count} سکه\n"
+            f"{serf * count} رعیت\n"
+            f"{armor * count} زره\n"
+            f"{sword * count} شمشیر\n"
+            f"{arrow * count} کمان\n"
+            f"{spear * count} نیزه\n"
+            f"{horse * count} اسب\n"
+            f"{separ * count} سپر"
+        )
 
         return property_text, 1, True
-    except Exception as e:
-        return f'خطای سیستم: {e}', 0, False
 
-def get_config_army(chat_id, tools_id,count):
+    except Exception as e:
+        return f"خطای سیستم: {e}", 0, False
+
+def get_config_army(chat_id, tools_id, count):
     try:
         tools_id = int(tools_id)
 
-        # اتصال به دیتابیس
         with mysql.connector.connect(
-                host=config.host,
-                user=config.user,
-                password=config.password,
-                database=config.database
+            host=config.host,
+            user=config.user,
+            password=config.password,
+            database=config.database
         ) as mydb:
             with mydb.cursor() as cursor:
-                # دریافت شهر کاربر
+                # دریافت شهر کاربر و parent_id
                 city_query = '''
-                               SELECT Id, ParentId
-                               FROM citytribe 
-                               WHERE ChatId = %s
-                               '''
+                    SELECT Id, ParentId
+                    FROM citytribe 
+                    WHERE ChatId = %s
+                '''
                 cursor.execute(city_query, (chat_id,))
                 city = cursor.fetchone()
 
                 if not city:
                     return 'شهر یافت نشد', 0, True
 
+                city_id = city[0]
+                parent_id = city[1]
+
+                # نیروهای معمولی
                 tools_data = {
-                    11: {3:10, 35:1, 32:1, 29:1, 30:0, 31:0, 33:0,44:1},
-                    12: {3:15, 35:1, 32:1, 29:0, 30:1, 31:0, 33:0,44:0},
-                    13: {3:10, 35:1, 32:1, 29:0, 30:0, 31:1, 33:0,44:1},
-                    14: {3:20, 35:1, 32:1, 29:1, 30:0, 31:0, 33:1,44:1},
-                    22: {3:25, 35:1, 32:1, 29:0, 30:0, 31:1, 33:0,44:0},
+                    11: {3: 10, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},
+                    12: {3: 15, 35: 1, 32: 1, 29: 0, 30: 1, 31: 0, 33: 0, 44: 0},
+                    13: {3: 10, 35: 1, 32: 1, 29: 0, 30: 0, 31: 1, 33: 0, 44: 1},
+                    14: {3: 20, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 1, 44: 1},
                 }
 
-                if tools_id not in tools_data:
+                # نیروهای ویژه بر اساس ParentId
+                special_units = {
+                    146: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # شمال
+                    147: {3: 25, 35: 1, 32: 1, 29: 0, 30: 0, 31: 1, 33: 1, 44: 1},  # ویل
+                    148: {3: 25, 35: 1, 32: 1, 29: 0, 30: 1, 31: 0, 33: 0, 44: 0},  # ریور
+                    149: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # کرونز
+                    150: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # جزایر
+                    151: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # استورم
+                    152: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # ریچ
+                    153: {3: 25, 35: 1, 32: 1, 29: 1, 30: 0, 31: 0, 33: 0, 44: 1},  # وستر
+                    154: {3: 25, 35: 1, 32: 1, 29: 0, 30: 0, 31: 1, 33: 0, 44: 1},  # دورن
+                }
+
+                # انتخاب هزینه‌ی مناسب
+                if tools_id == 22:
+                    if parent_id not in special_units:
+                        return f"⚠ نیروی ویژه برای ParentId={parent_id} تعریف نشده، به ادمین اطلاع بده.", 0, True
+                    tools_costs = special_units[parent_id]
+                elif tools_id in tools_data:
+                    tools_costs = tools_data[tools_id]
+                else:
                     return 'شناسه ادوات نامعتبر است', 0, True
-                tools_costs = tools_data[tools_id]
 
+                # دریافت منابع شهر
                 property_query = '''
-                   SELECT PropertyId, Amount
-                   FROM property_city
-                   WHERE CityId = %s
-                   '''
-                cursor.execute(property_query, (city[0],))
+                    SELECT PropertyId, Amount
+                    FROM property_city
+                    WHERE CityId = %s
+                '''
+                cursor.execute(property_query, (city_id,))
                 user_resources = cursor.fetchall()
-
-                # تبدیل منابع کاربر به دیکشنری برای دسترسی راحت‌تر
                 user_resource_dict = {res[0]: res[1] for res in user_resources}
 
-                # بررسی اینکه کاربر آیا منابع کافی دارد یا نه
+                # بررسی منابع کافی
                 for resource_id, required_amount in tools_costs.items():
                     if user_resource_dict.get(resource_id, 0) < required_amount * count:
-                        return 'منابع کافی برای ساخت ادوات ندارید', 0, True
+                        return '⚠ منابع کافی برای ساخت نیرو ندارید', 0, True
 
-                # کسر منابع از موجودی کاربر
+                # کسر منابع
                 for resource_id, required_amount in tools_costs.items():
                     updated_amount = user_resource_dict[resource_id] - required_amount * count
                     update_resource_query = '''
-                       UPDATE property_city
-                       SET Amount = %s
-                       WHERE CityId = %s AND PropertyId = %s
-                       '''
-                    cursor.execute(update_resource_query, (updated_amount, city[0], resource_id))
+                        UPDATE property_city
+                        SET Amount = %s
+                        WHERE CityId = %s AND PropertyId = %s
+                    '''
+                    cursor.execute(update_resource_query, (updated_amount, city_id, resource_id))
 
+                # بررسی اینکه این نیرو قبلاً وجود دارد یا نه
                 tools_query = '''
-                   SELECT Id
-                   FROM property_city
-                   WHERE CityId = %s AND PropertyId = %s
-                   '''
-                cursor.execute(tools_query, (city[0], tools_id))
-                ship = cursor.fetchone()
+                    SELECT Id
+                    FROM property_city
+                    WHERE CityId = %s AND PropertyId = %s
+                '''
+                cursor.execute(tools_query, (city_id, tools_id))
+                existing_army = cursor.fetchone()
 
-                if not ship:
-                    # درج ادوات جدید
-                    insert_ship = '''
-                       INSERT INTO property_city (CityId, PropertyId, Amount)
-                       VALUES (%s, %s, %s)
-                       '''
-                    cursor.execute(insert_ship, (city[0], tools_id, count))
+                if not existing_army:
+                    insert_query = '''
+                        INSERT INTO property_city (CityId, PropertyId, Amount)
+                        VALUES (%s, %s, %s)
+                    '''
+                    cursor.execute(insert_query, (city_id, tools_id, count))
                 else:
-                    # به‌روزرسانی تعداد ادوات
-                    update_ship = '''
-                       UPDATE property_city
-                       SET Amount = Amount + %s
-                       WHERE Id = %s
-                       '''
-                    cursor.execute(update_ship, (count, ship[0],))
+                    update_query = '''
+                        UPDATE property_city
+                        SET Amount = Amount + %s
+                        WHERE Id = %s
+                    '''
+                    cursor.execute(update_query, (count, existing_army[0]))
 
-                mydb.commit()  # اعمال تغییرات در دیتابیس
-
-                return 'ادوات با موفقیت ساخته شد', 1, True
+                mydb.commit()
+                return '✅ نیرو با موفقیت ساخته شد', 1, True
 
     except mysql.connector.Error as err:
-        mydb.rollback()
+        if mydb.in_transaction:
+            mydb.rollback()
         return f'خطای دیتابیس: {err}', 0, False
     except Exception as e:
-        mydb.rollback()
+        if mydb.in_transaction:
+            mydb.rollback()
         return f'خطای سیستم: {e}', 0, False
