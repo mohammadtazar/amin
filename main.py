@@ -1604,7 +1604,8 @@ def process_army_count(message, weapon_id):
         count = int(message.text)
 
         markup = types.InlineKeyboardMarkup(row_width=2)
-        property_text, code, status = get_cost_army(weapon_id,count)
+        city, _ = get_city_by_chat_id(message.chat.id)
+        property_text, code, status = get_cost_army(weapon_id,count,city[0][2])
         if status == False:
             try:
                 bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
