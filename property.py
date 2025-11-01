@@ -152,7 +152,7 @@ def get_product():
             resource_query = f'''
                              SELECT Title, Id
                              FROM property
-                             WHERE type = 1
+                             WHERE type IN (1,3)
                              '''
             cursor.execute(resource_query)
             resource = cursor.fetchall()
