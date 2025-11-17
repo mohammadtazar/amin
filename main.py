@@ -22,8 +22,9 @@ from upgrate import cost_food,cost_casualties,get_negative_supply,get_resource_e
 admin_chat_id = '1889589121'
 admin_chat_second_id ='6968676246'
 admin_chat_tree_id = '8056598555'
+admin_valid_list = [8056598555,6968676246,1889589121,7771207601]
 BOT_TOKEN = '7573605568:AAFAatB0133sDm5KkuK3Wxezxn6cipNdfGo'
-campaign_chat_id = '-4786037295'
+campaign_chat_id = '-5049788602'
 bot = telebot.TeleBot(BOT_TOKEN)
 BOTSupport_TOKEN = '7139060556:AAGQYZEyh2t-udVgDHc8Ep0KUaajTT9poNQ' # ساپورت
 botSupport = telebot.TeleBot(BOTSupport_TOKEN)
@@ -1315,7 +1316,7 @@ def con_upgrade(call):
 def add_city(message):
     try:
         # بررسی ادمین بودن کاربر
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
 
@@ -1326,7 +1327,7 @@ def add_city(message):
 def save_add_city(message):
     try:
         # بررسی ادمین بودن کاربر
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که به شما مربوط نیست دخالت نکن.")
             return
 
@@ -1694,7 +1695,7 @@ def handle_panel_message(message):
 def resource_efficiency(call):
     bot.answer_callback_query(call.id)
 
-    if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+    if call.from_user.id not in admin_valid_list:
         bot.send_message(chat_id=call.message.chat.id, text="خسته ام کردید")
         return
 
@@ -1710,7 +1711,7 @@ def resource_efficiency(call):
 @bot.callback_query_handler(func=lambda call: call.data == "config_resource_efficiency")
 def config_resource_efficiency(call):
     bot.answer_callback_query(call.id)
-    if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+    if call.from_user.id not in admin_valid_list:
         bot.send_message(chat_id=call.message.chat.id, text="خسته ام کردید")
         return
 
@@ -2100,7 +2101,7 @@ def add_resource(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("add_resource_"))
 def handle_add_resource(call):
     try:
-        if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+        if call.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=call.message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن بیا موزم 🍌رو بگیر")
             bot.send_message(chat_id=admin_chat_id,
                              text=f' {call.from_user.first_name} \n @{call.from_user.username} \n دسترسی غیر مجاز برای کم یا زیاد کردن دارایی')
@@ -2161,7 +2162,7 @@ def costs_resource(message):
 def costs_resource(call):
     try:
         # اصلاح دسترسی به شناسه کاربر
-        if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+        if call.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=call.message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن بیا موزم🍌 رو بگیر")
             bot.send_message(chat_id=admin_chat_id,
                              text=f' {call.from_user.first_name} \n @{call.from_user.username} \n دسترسی غیر مجاز برای کم یا زیاد کردن دارایی')
@@ -2218,7 +2219,7 @@ def add_building(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("building_up"))
 def up_level(call):
     try:
-        if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+        if call.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=call.message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن بیا موزم 🍌رو بگیر")
             bot.send_message(chat_id=admin_chat_id,
                              text=f' {call.from_user.first_name} \n @{call.from_user.username} \n دسترسی غیر مجاز برای کم یا زیاد کردن دارایی')
@@ -2258,7 +2259,7 @@ def cost_building(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("building_down"))
 def down_level(call):
     try:
-        if call.from_user.id != int(admin_chat_id) and call.from_user.id != int(admin_chat_second_id) and call.from_user.id != int(admin_chat_tree_id):
+        if call.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=call.message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن بیا موزم 🍌رو بگیر")
             bot.send_message(chat_id=admin_chat_id,
                              text=f' {call.from_user.first_name} \n @{call.from_user.username} \n دسترسی غیر مجاز برای کم یا زیاد کردن دارایی')
@@ -2278,7 +2279,7 @@ def down_level(call):
 def add_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = promotion(message.chat.id,1)
@@ -2291,7 +2292,7 @@ def add_city(message):
 def add_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = promotion(message.chat.id,2)
@@ -2304,7 +2305,7 @@ def add_city(message):
 def add_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = promotion(message.chat.id,3)
@@ -2316,7 +2317,7 @@ def add_city(message):
 def add_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = promotion(message.chat.id,4)
@@ -2328,7 +2329,7 @@ def add_city(message):
 def remove_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = get_remove_property(message.chat.id)
@@ -2340,7 +2341,7 @@ def remove_city(message):
 def up_city(message):
     try:
         # بررسی کنید که کاربر ادمین باشد
-        if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+        if message.from_user.id not in admin_valid_list:
             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
             return
         text = get_up_city(message.chat.id)
@@ -2355,7 +2356,7 @@ def up_city(message):
 # def add_dragon(message):
 #     try:
 #         # بررسی کنید که کاربر ادمین باشد
-#         if message.from_user.id not in [int(admin_chat_id), int(admin_chat_second_id), int(admin_chat_tree_id)]:
+#         if message.from_user.id not in admin_valid_list:
 #             bot.send_message(chat_id=message.chat.id, text="تو کاری که بهت مربوط نیست دخالت نکن")
 #             return
 #         continent, status = get_all_dragon()
